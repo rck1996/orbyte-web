@@ -1,15 +1,15 @@
 # Orbyte
 
-Orbyte is a cinematic 3D productivity dashboard built with Next.js, React Three Fiber, Three.js, Framer Motion, Tailwind CSS, and TypeScript.
+Orbyte is a cinematic spatial productivity system built as a navigable universe.
 
-The current product direction is:
-
+Version `1.0.0` ships the new primary 2D canvas experience:
 - `Galaxy` = category
-- `Objective` = solar system
+- `Objective` = solar system / sun
 - `Task` = planet
 - `Subtask` = satellite
+- `Habit` = orbital rhythm around an objective
 
-The root route renders a navigable space scene with a HUD on top and a small backend layer that serves the universe data.
+The 3D prototype is still available as a legacy route, but the 2D experience is now the main product direction.
 
 ## Stack
 
@@ -45,167 +45,139 @@ npm run build
 npm run start
 ```
 
-## Available Routes
+## Main Routes
 
 - `/`
-  Main 3D Orbyte experience.
-- `/api/universe`
-  Returns the current spatial productivity data model.
-- `/api/dashboard`
-  Legacy flat dashboard data kept from the earlier phase of the project.
+  Main Orbyte 2D universe experience.
+- `/three`
+  Legacy 3D prototype route.
+
+## API Routes
+
+- `GET /api/universe`
+  Returns the mapped universe used by the visual experience.
+- `GET /api/workspace`
+  Returns the editable workspace domain.
+- `GET/POST /api/categories`
+- `GET/PATCH/DELETE /api/categories/:categoryId`
+- `GET/POST /api/objectives`
+- `GET/PATCH/DELETE /api/objectives/:objectiveId`
+- `GET/POST /api/tasks`
+- `GET/PATCH/DELETE /api/tasks/:taskId`
+- `GET/POST /api/subtasks`
+- `GET/PATCH/DELETE /api/subtasks/:subtaskId`
+- `GET/POST /api/habits`
+- `GET/PATCH/DELETE /api/habits/:habitId`
+- `GET /api/dashboard`
+  Legacy flat dashboard endpoint kept for backward compatibility.
+
+## Product Model
+
+The current hierarchy is:
+
+- `Category`
+- `Objective`
+- `Task`
+- `Subtask`
+- `Habit`
+
+Important distinction:
+
+- `Task` and `Subtask` represent discrete work.
+- `Habit` represents recurring behavior that contributes to objective progress.
+
+Objective progress is currently derived from tasks plus linked habits, then mapped into the visual universe.
+
+## Current Experience
+
+### 2D universe
+
+The main route now includes:
+
+- professional 2D canvas navigation
+- click to select
+- drag on empty space to pan
+- `space + drag` and right-drag for universal pan
+- wheel zoom
+- `Fit` action by level
+- minimap on desktop
+- mobile bottom sheet navigation
+- contextual detail panels
+- task and subtask focus modals
+- habit focus modal with quick check-in actions
+
+### 3D route
+
+The 3D version remains available at `/three` as a preserved prototype and reference implementation.
+
+## Data And Persistence
+
+The app no longer depends only on a visual mock. It now has a file-backed editable workspace domain:
+
+- `src/lib/server/universe-db.ts`
+- `src/lib/server/universe-repository.ts`
+- `src/lib/server/universe-service.ts`
+- `src/lib/server/universe-mappers.ts`
+- `src/data/universe-db.json`
+
+This means CRUD already exists at the application level, even though the persistence layer is still local JSON rather than a database.
 
 ## Project Structure
 
 ```text
 src/
-├── app/
-│   ├── api/
-│   │   ├── dashboard/
-│   │   └── universe/
-│   ├── error.tsx
-│   ├── layout.tsx
-│   ├── loading.tsx
-│   └── page.tsx
-├── components/
-│   ├── galaxy/
-│   ├── overlays/
-│   ├── planets/
-│   ├── solar-system/
-│   ├── sections/
-│   └── ui/
-├── config/
-├── design-system/
-├── lib/
-│   ├── server/
-│   ├── scene-anchors.ts
-│   ├── space.ts
-│   └── utils.ts
-├── scene/
-├── store/
-├── systems/
-└── types/
+  app/
+    api/
+    three/
+  components/
+    galaxy/
+    overlays/
+    planets/
+    solar-system/
+    universe-2d/
+    ui/
+  data/
+  lib/
+    server/
+  scene/
+  store/
+  systems/
+  types/
 ```
 
-## How The App Works
+## Key Files
 
-### 1. Server data flow
-
-`src/app/page.tsx` is a server component.
-
-It loads the universe from:
-
-- `src/lib/server/universe-service.ts`
-- `src/lib/server/universe-repository.ts`
-- `src/config/universe.ts`
-
-Right now the repository returns mocked in-memory data. The structure already matches the future CRUD model, so replacing the mock with Prisma/Postgres is straightforward.
-
-### 2. Scene composition
-
-The main scene flow is:
-
-- `src/scene/orbyte-experience.tsx`
-  Top-level experience shell.
-- `src/scene/universe-canvas.tsx`
-  Creates the R3F canvas.
-- `src/scene/universe-scene.tsx`
-  Composes lights, stars, galaxies, and the camera rig.
-
-### 3. Spatial hierarchy
-
-The 3D world is built in layers:
-
-- `src/components/galaxy/galaxy-node.tsx`
-  Renders a galaxy and its active objective systems.
-- `src/components/solar-system/objective-system.tsx`
-  Renders orbital paths and objective anchors.
-- `src/components/planets/task-planet.tsx`
-  Renders tasks and orbiting subtasks.
-
-### 4. Camera and navigation
-
-The camera is controlled by:
-
-- `src/systems/camera-rig.tsx`
-
-Selection state lives in:
-
-- `src/store/universe-store.ts`
-
-Important detail:
-
-The store only holds interaction state such as hovered and selected ids.
-
-World positions are not stored in Zustand anymore. They are written into:
-
-- `src/lib/scene-anchors.ts`
-
-This avoids React rerenders on every animation frame and prevents scene instability.
-
-### 5. HUD overlays
-
-The HTML overlay layer is separate from the 3D scene:
-
+- `src/app/page.tsx`
+  Main 2D entry route.
+- `src/app/three/page.tsx`
+  Legacy 3D route.
+- `src/scene/orbyte-experience-2d.tsx`
+  2D shell and refresh orchestration.
+- `src/components/universe-2d/universe-map-2d.tsx`
+  Main 2D canvas, pan/zoom, transitions, minimap, habits, and node interactions.
 - `src/components/overlays/universe-hud.tsx`
-- `src/components/overlays/focus-panel.tsx`
-- `src/components/overlays/galaxy-rail.tsx`
-
-This keeps the scene responsible for rendering and motion, while the overlay remains responsible for reading and editing context.
-
-## Core Types
-
-Main spatial types live in:
-
-- `src/types/universe.ts`
-
-Key entities:
-
-- `UniverseData`
-- `GalaxyNode`
-- `ObjectiveNode`
-- `TaskNode`
-- `SubtaskNode`
-
-Legacy flat dashboard types still live in:
-
-- `src/types/dashboard.ts`
-
-## Current Technical Notes
-
-### `THREE.Clock` deprecation warning
-
-This warning currently comes from `@react-three/fiber`, not from the app code.
-
-### `THREE.WebGLRenderer: Context Lost`
-
-The scene was already reduced to a safer GPU budget:
-
-- no `Environment preset`
-- reduced stars
-- reduced particles
-- reduced geometry segments
-- lower DPR
-- antialias disabled
-
-If the issue appears again, inspect the browser console first before changing the scene blindly.
+  Sidebar / mobile sheet navigation container.
+- `src/components/overlays/task-focus-modal.tsx`
+  Task and subtask operational modal.
+- `src/components/overlays/habit-focus-modal.tsx`
+  Habit modal with check-in flow.
 
 ## Current Limitations
 
-- Data is still mocked in `src/config/universe.ts`
-- No database yet
-- No CRUD mutations yet
-- No auth or multi-workspace support yet
-- Legacy flat dashboard components still exist in the repo but are not the primary experience
+- persistence is local JSON, not a database
+- no authentication yet
+- no multi-user collaboration yet
+- the 3D route is still heavier and experimental compared to the 2D experience
 
-## Recommended Next Backend Step
+## Next Release Direction
 
-The next implementation phase should be:
+The next major phase after `1.0.0` should be:
 
-1. Add Prisma
-2. Add PostgreSQL
-3. Replace `src/config/universe.ts` with persisted data
-4. Create CRUD endpoints for galaxies, objectives, tasks, and subtasks
-5. Wire overlay forms and mutations into those endpoints
+1. move from file-backed persistence to Prisma + PostgreSQL
+2. deploy publicly
+3. add authentication and workspaces
+4. improve analytics and habit history
+5. continue polishing mobile interaction and canvas performance
 
 ## Extra Documentation
 

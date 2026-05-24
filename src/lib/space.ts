@@ -1,6 +1,7 @@
 import type {
   GalaxyNode,
   ObjectiveNode,
+  SubtaskNode,
   TaskNode,
   UniverseData,
 } from "@/types/universe";
@@ -9,6 +10,7 @@ export type FocusEntity = {
   galaxy: GalaxyNode | null;
   objective: ObjectiveNode | null;
   task: TaskNode | null;
+  subtask: SubtaskNode | null;
 };
 
 export function getFocusEntity(
@@ -16,14 +18,79 @@ export function getFocusEntity(
   selectedGalaxyId: string | null,
   selectedObjectiveId: string | null,
   selectedTaskId: string | null,
+  selectedSubtaskId: string | null,
 ): FocusEntity {
   const galaxy =
-    universe.galaxies.find((item) => item.id === selectedGalaxyId) ?? universe.galaxies[0] ?? null;
+    universe.galaxies.find((item) => item.id === selectedGalaxyId) ?? null;
   const objective =
     galaxy?.objectives.find((item) => item.id === selectedObjectiveId) ?? null;
   const task = objective?.tasks.find((item) => item.id === selectedTaskId) ?? null;
+  const subtask = task?.subtasks.find((item) => item.id === selectedSubtaskId) ?? null;
 
-  return { galaxy, objective, task };
+  return { galaxy, objective, task, subtask };
+}
+
+export function getFocusTasks(focus: FocusEntity): TaskNode[] {
+  if (focus.subtask && focus.task) {
+    return [focus.task];
+  }
+
+  if (focus.task) {
+    return [focus.task];
+  }
+
+  if (focus.objective) {
+    return focus.objective.tasks;
+  }
+
+  if (focus.galaxy) {
+    return focus.galaxy.objectives.flatMap((objective) => objective.tasks);
+  }
+
+  return [];
+}
+
+export function getFocusProgress(focus: FocusEntity): number {
+  if (focus.subtask) {
+    return focus.subtask.progress;
+  }
+
+  if (focus.task) {
+    return focus.task.progress;
+  }
+
+  if (focus.objective) {
+    return focus.objective.progress;
+  }
+
+  if (focus.galaxy) {
+    return focus.galaxy.progress;
+  }
+
+  return 0;
+}
+
+export function getFocusDescription(
+  universe: UniverseData,
+  focus: FocusEntity,
+) {
+  return (
+    focus.subtask?.metadata ??
+    focus.task?.summary ??
+    focus.objective?.description ??
+    focus.galaxy?.description ??
+    universe.summary
+  );
+}
+
+export function getFocusTitle(universe: UniverseData, focus: FocusEntity) {
+  return (
+    focus.subtask?.name ??
+    focus.task?.name ??
+    focus.objective?.name ??
+    focus.galaxy?.name ??
+    universe.title
+  );
 }
 
 export function stateVisuals(state: TaskNode["state"]) {

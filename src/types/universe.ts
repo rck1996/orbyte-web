@@ -1,5 +1,17 @@
 export type TaskState = "todo" | "in_progress" | "done" | "blocked";
 
+export type HabitNode = {
+  id: string;
+  name: string;
+  cadence: "daily" | "weekly" | "monthly";
+  progress: number;
+  metricLabel: string;
+  streak: number;
+  target: number;
+  completedCount: number;
+  description: string;
+};
+
 export type SubtaskNode = {
   id: string;
   name: string;
@@ -24,6 +36,7 @@ export type ObjectiveNode = {
   description: string;
   orbitRadius: number;
   progress: number;
+  habits?: HabitNode[];
   tasks: TaskNode[];
 };
 

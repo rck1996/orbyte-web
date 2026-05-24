@@ -1,8 +1,12 @@
 import "server-only";
 
-import { universeData } from "@/config/universe";
-import type { UniverseData } from "@/types/universe";
+import { readWorkspaceDomain, writeWorkspaceDomain } from "@/lib/server/universe-db";
+import type { WorkspaceDomain } from "@/types/domain";
 
-export async function readUniverseData(): Promise<UniverseData> {
-  return universeData;
+export async function readUniverseWorkspace(): Promise<WorkspaceDomain> {
+  return readWorkspaceDomain();
+}
+
+export async function writeUniverseWorkspace(workspace: WorkspaceDomain): Promise<WorkspaceDomain> {
+  return writeWorkspaceDomain(workspace);
 }
