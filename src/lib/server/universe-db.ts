@@ -16,6 +16,9 @@ import type {
 
 const DATA_DIR = path.join(process.cwd(), "src", "data");
 const DATA_FILE = path.join(DATA_DIR, "universe-db.json");
+const IS_VERCEL_RUNTIME = Boolean(process.env.VERCEL);
+
+let memoryWorkspace: WorkspaceDomain | null = null;
 
 const galaxyProfiles = [
   {
@@ -381,11 +384,28 @@ function cloneWorkspace(workspace: WorkspaceDomain): WorkspaceDomain {
 }
 
 export async function readWorkspaceDomain(): Promise<WorkspaceDomain> {
+  if (IS_VERCEL_RUNTIME && memoryWorkspace) {
+    return cloneWorkspace(memoryWorkspace);
+  }
+
   try {
     const raw = await readFile(DATA_FILE, "utf8");
-    return JSON.parse(raw) as WorkspaceDomain;
+    const parsed = JSON.parse(raw) as WorkspaceDomain;
+
+    if (IS_VERCEL_RUNTIME) {
+      memoryWorkspace = cloneWorkspace(parsed);
+      return cloneWorkspace(parsed);
+    }
+
+    return parsed;
   } catch {
     const initial = seedWorkspace();
+
+    if (IS_VERCEL_RUNTIME) {
+      memoryWorkspace = cloneWorkspace(initial);
+      return cloneWorkspace(initial);
+    }
+
     await mkdir(DATA_DIR, { recursive: true });
     await writeFile(DATA_FILE, `${JSON.stringify(initial, null, 2)}\n`, "utf8");
     return cloneWorkspace(initial);
@@ -394,6 +414,12 @@ export async function readWorkspaceDomain(): Promise<WorkspaceDomain> {
 
 export async function writeWorkspaceDomain(workspace: WorkspaceDomain): Promise<WorkspaceDomain> {
   const snapshot = cloneWorkspace(workspace);
+
+  if (IS_VERCEL_RUNTIME) {
+    memoryWorkspace = cloneWorkspace(snapshot);
+    return cloneWorkspace(snapshot);
+  }
+
   await mkdir(DATA_DIR, { recursive: true });
   await writeFile(DATA_FILE, `${JSON.stringify(snapshot, null, 2)}\n`, "utf8");
   return snapshot;
