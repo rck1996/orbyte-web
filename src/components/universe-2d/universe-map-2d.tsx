@@ -930,7 +930,7 @@ export function UniverseMap2D({
         >
         <svg className="pointer-events-none absolute inset-0 h-full w-full">
           {showOverview
-            ? universe.galaxies.map((item, index) => (
+            ? !lightweightOverview && universe.galaxies.map((item, index) => (
                 <line
                   key={item.id}
                   x1={sceneCenter.x}
@@ -1038,6 +1038,7 @@ export function UniverseMap2D({
               point={sceneCenter}
               introOrigin={transitionOrigin?.point ?? null}
               reducedMotion={lightweightOverview}
+              compact={lightweightOverview}
             />
             {universe.galaxies.map((item, index) => (
               <GalaxyCard
@@ -1046,6 +1047,7 @@ export function UniverseMap2D({
                 point={galaxyPoints[index]}
                 introOrigin={transitionOrigin?.point ?? null}
                 reducedMotion
+                compact={lightweightOverview}
                 onSelect={() =>
                   beginSelectionTransition({
                     point: galaxyPoints[index],
@@ -1345,6 +1347,7 @@ function HubBadge({
   layoutId,
   introOrigin,
   reducedMotion = false,
+  compact = false,
 }: {
   title: string;
   subtitle: string;
@@ -1354,6 +1357,7 @@ function HubBadge({
   layoutId?: string;
   introOrigin?: Point | null;
   reducedMotion?: boolean;
+  compact?: boolean;
 }) {
   const delay = entranceDelay(point, introOrigin ?? null);
 
@@ -1361,7 +1365,11 @@ function HubBadge({
       <motion.div
         data-universe-node="true"
         layoutId={layoutId}
-      className="absolute w-[264px] -translate-x-1/2 -translate-y-1/2 rounded-[28px] border border-white/12 bg-slate-950/74 p-16 shadow-[0_24px_100px_rgba(2,6,23,0.45)] backdrop-blur-2xl"
+        className={`absolute -translate-x-1/2 -translate-y-1/2 border ${
+          compact
+            ? "w-[224px] rounded-[22px] border-white/10 bg-slate-950/84 p-12 shadow-[0_10px_32px_rgba(2,6,23,0.22)]"
+            : "w-[264px] rounded-[28px] border-white/12 bg-slate-950/74 p-16 shadow-[0_24px_100px_rgba(2,6,23,0.45)] backdrop-blur-2xl"
+        }`}
       style={{ left: point.x, top: point.y }}
       initial={reducedMotion ? false : { opacity: 0, scale: 0.96, y: 12 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -1369,17 +1377,19 @@ function HubBadge({
     >
       <div className="flex items-center gap-12">
         <div
-          className="size-[48px] rounded-full shadow-[0_0_50px_rgba(255,255,255,0.2)]"
+          className={`${compact ? "size-[36px]" : "size-[48px]"} rounded-full shadow-[0_0_30px_rgba(255,255,255,0.16)]`}
           style={{ background: `radial-gradient(circle, ${accent}, transparent 72%)` }}
         />
         <div>
           <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{subtitle}</p>
-          <h2 className="mt-8 text-[24px] leading-[1.04] font-semibold tracking-[-0.05em] text-white">
+          <h2 className={`${compact ? "mt-6 text-[20px]" : "mt-8 text-[24px]"} leading-[1.04] font-semibold tracking-[-0.05em] text-white`}>
             {title}
           </h2>
         </div>
       </div>
-      <p className="mt-12 text-sm leading-[1.6] text-slate-300">{description}</p>
+      <p className={`${compact ? "mt-8 text-xs leading-[1.5]" : "mt-12 text-sm leading-[1.6]"} text-slate-300`}>
+        {description}
+      </p>
     </motion.div>
   );
 }
@@ -1389,12 +1399,14 @@ function GalaxyCard({
   point,
   introOrigin,
   reducedMotion = false,
+  compact = false,
   onSelect,
 }: {
   galaxy: UniverseData["galaxies"][number];
   point: Point;
   introOrigin?: Point | null;
   reducedMotion?: boolean;
+  compact?: boolean;
   onSelect: () => void;
 }) {
   const delay = entranceDelay(point, introOrigin ?? null);
@@ -1405,7 +1417,11 @@ function GalaxyCard({
       layoutId={`galaxy-${galaxy.id}`}
       type="button"
       onClick={onSelect}
-      className="absolute w-[188px] -translate-x-1/2 -translate-y-1/2 rounded-[24px] border border-white/10 bg-slate-950/70 p-16 text-left shadow-[0_20px_80px_rgba(2,6,23,0.32)] backdrop-blur-2xl transition hover:border-white/18 hover:bg-slate-950/78"
+      className={`absolute -translate-x-1/2 -translate-y-1/2 border text-left transition ${
+        compact
+          ? "w-[148px] rounded-[18px] border-white/8 bg-slate-950/84 p-12 shadow-[0_10px_28px_rgba(2,6,23,0.18)] hover:border-white/14 hover:bg-slate-950/88"
+          : "w-[188px] rounded-[24px] border-white/10 bg-slate-950/70 p-16 shadow-[0_20px_80px_rgba(2,6,23,0.32)] backdrop-blur-2xl hover:border-white/18 hover:bg-slate-950/78"
+      }`}
       style={{ left: point.x, top: point.y }}
       initial={{ opacity: 0, scale: 0.94, y: 10 }}
       animate={reducedMotion ? { opacity: 1, scale: 1, y: 0 } : { opacity: 1, scale: 1, y: [0, -4, 0] }}
@@ -1424,21 +1440,21 @@ function GalaxyCard({
       whileTap={{ scale: 0.98 }}
     >
       <div className="flex items-center justify-between gap-12">
-        <div className="relative size-[56px]">
+        <div className={`relative ${compact ? "size-[40px]" : "size-[56px]"}`}>
           <div
             className="absolute inset-0 rounded-full opacity-70"
             style={{ background: `radial-gradient(circle, ${galaxy.color}, transparent 72%)` }}
           />
-          <div className="absolute inset-[8px] rounded-full border border-white/16" />
-          <div className="absolute inset-[16px] rounded-full border border-white/12" />
+          <div className={`absolute ${compact ? "inset-[6px]" : "inset-[8px]"} rounded-full border border-white/16`} />
+          {!compact ? <div className="absolute inset-[16px] rounded-full border border-white/12" /> : null}
         </div>
         <div className="rounded-full border border-white/8 bg-white/[0.03] px-8 py-4 text-[10px] text-slate-400">
           {galaxy.progress}%
         </div>
       </div>
       <p className="mt-12 text-[10px] uppercase tracking-[0.18em] text-slate-400">{galaxy.category}</p>
-      <p className="mt-8 text-base font-medium text-white">{galaxy.name}</p>
-      <p className="mt-8 text-sm leading-[1.55] text-slate-300">
+      <p className={`${compact ? "mt-6 text-sm" : "mt-8 text-base"} font-medium text-white`}>{galaxy.name}</p>
+      <p className={`${compact ? "mt-6 text-xs leading-[1.45]" : "mt-8 text-sm leading-[1.55]"} text-slate-300`}>
         {galaxy.objectives.length} objectives
       </p>
     </motion.button>
