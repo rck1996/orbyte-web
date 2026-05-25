@@ -191,12 +191,21 @@ export function UniverseHud({
       selectedTask?.subtasks.find((item) => item.id === selectedSubtaskId)?.name ?? null,
     ].filter((item): item is string => Boolean(item));
 
-    const mobileSheetHeight =
+  const mobileSheetHeight =
       effectiveMobileSheetState === "peek"
         ? "max-h-[164px]"
         : effectiveMobileSheetState === "half"
           ? "max-h-[68svh] md:max-h-[68vh]"
           : "max-h-[calc(100svh-24px)] max-h-[calc(100dvh-24px)] md:max-h-none";
+    const sidebarSurfaceClass = compactTouch
+      ? "border-white/8 bg-slate-950/92 shadow-[0_18px_64px_rgba(2,6,23,0.24)]"
+      : "border-white/10 bg-slate-950/58 shadow-[0_24px_120px_rgba(2,6,23,0.36)] backdrop-blur-2xl";
+    const cardSurfaceClass = compactTouch
+      ? "border-white/8 bg-slate-950/72 shadow-[0_12px_40px_rgba(2,6,23,0.18)]"
+      : "border-white/10 bg-slate-950/34 shadow-[0_18px_80px_rgba(2,6,23,0.2)] backdrop-blur-2xl";
+    const navButtonClass = compactTouch
+      ? "inline-flex items-center gap-8 rounded-full border border-white/10 bg-slate-900 px-12 py-8 text-[10px] font-medium uppercase tracking-[0.16em] text-slate-100 transition active:scale-[0.99]"
+      : "inline-flex items-center gap-8 rounded-full border border-white/10 bg-white/[0.04] px-12 py-8 text-xs font-medium uppercase tracking-[0.14em] text-slate-200 transition hover:bg-white/[0.08]";
 
     return (
       <div className="pointer-events-none absolute inset-0 z-20">
@@ -213,7 +222,7 @@ export function UniverseHud({
           {!effectiveNavCollapsed ? (
             <motion.aside
               key="sidebar-open"
-              className={`pointer-events-auto absolute inset-x-4 bottom-4 top-auto z-30 flex overflow-hidden rounded-[24px] border border-white/10 bg-slate-950/58 shadow-[0_24px_120px_rgba(2,6,23,0.36)] backdrop-blur-2xl transition-none md:transition-[max-height] md:duration-300 md:inset-y-12 md:left-12 md:right-auto md:w-[380px] md:max-w-[calc(100vw-48px)] md:max-h-none md:rounded-[28px] ${mobileSheetHeight}`}
+              className={`pointer-events-auto absolute inset-x-4 bottom-4 top-auto z-30 flex overflow-hidden rounded-[24px] border transition-none md:transition-[max-height] md:duration-300 md:inset-y-12 md:left-12 md:right-auto md:w-[380px] md:max-w-[calc(100vw-48px)] md:max-h-none md:rounded-[28px] ${sidebarSurfaceClass} ${mobileSheetHeight}`}
               initial={compactTouch ? false : { opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               exit={compactTouch ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
@@ -264,13 +273,15 @@ export function UniverseHud({
                         {universe.title}
                       </h2>
                       <p className="mt-8 text-sm leading-[1.6] text-slate-300">
-                        Canvas navigation, context, and actions live here in a single scrollable rail.
+                        {compactTouch
+                          ? "Navigation, context, and actions stay here without covering the whole canvas."
+                          : "Canvas navigation, context, and actions live here in a single scrollable rail."}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setNavCollapsed(true)}
-                      className="inline-flex shrink-0 items-center gap-8 rounded-full border border-white/10 bg-white/[0.04] px-12 py-8 text-xs font-medium uppercase tracking-[0.14em] text-slate-200 transition hover:bg-white/[0.08]"
+                      className={navButtonClass}
                       aria-label="Collapse navigation sidebar"
                     >
                       <ChevronsLeft className="size-16" aria-hidden="true" />
@@ -362,7 +373,7 @@ export function UniverseHud({
                         {sidebarPanel === "navigate" ? (
                           <>
                             <motion.div
-                              className="w-full rounded-[20px] border border-white/10 bg-slate-950/34 p-12 shadow-[0_18px_80px_rgba(2,6,23,0.2)] backdrop-blur-2xl"
+                              className={`w-full rounded-[20px] border p-12 ${cardSurfaceClass}`}
                               initial={{ opacity: 0, y: 8 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
@@ -381,7 +392,9 @@ export function UniverseHud({
                                 </div>
                               </div>
                               <p className="mt-10 text-sm leading-[1.6] text-slate-300">
-                                Navigate laterally here, then click nodes in the canvas to drill deeper with context preserved.
+                                {compactTouch
+                                  ? "Browse this level here, then tap nodes on the canvas to go deeper."
+                                  : "Navigate laterally here, then click nodes in the canvas to drill deeper with context preserved."}
                               </p>
                               <div className="mt-12 grid grid-cols-2 gap-8">
                                 <button
@@ -423,7 +436,7 @@ export function UniverseHud({
 
                             {!introHidden ? (
                               <motion.div
-                                className={`w-full rounded-[20px] border border-white/10 bg-slate-950/34 p-12 shadow-[0_18px_80px_rgba(2,6,23,0.2)] backdrop-blur-2xl ${
+                                className={`w-full rounded-[20px] border p-12 ${cardSurfaceClass} ${
                                   effectiveMobileSheetState === "peek" ? "hidden md:block" : ""
                                 }`}
                                 initial={compactTouch ? false : { opacity: 0, y: 8 }}
@@ -517,21 +530,29 @@ export function UniverseHud({
               exit={compactTouch ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
               transition={compactTouch ? { duration: 0 } : { duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             >
-              <button
-                type="button"
-                data-universe-ui="true"
-                onClick={() => {
-                  setNavCollapsed(false);
-                  if (compactTouch) {
-                    setMobileSheetState("half");
-                  }
-                }}
-                className="inline-flex w-full items-center justify-center gap-8 rounded-full border border-white/10 bg-slate-950/72 px-12 py-12 text-xs font-medium uppercase tracking-[0.16em] text-slate-100 shadow-[0_18px_60px_rgba(2,6,23,0.32)] backdrop-blur-xl transition hover:bg-slate-950/80 md:w-auto md:justify-start md:px-12 md:py-10"
-                aria-label="Open navigation sidebar"
-              >
-                <ChevronsRight className="size-16" aria-hidden="true" />
-                <span>Open nav</span>
-              </button>
+              <div className="flex items-center gap-8 rounded-[22px] border border-white/10 bg-slate-950/88 p-8 shadow-[0_18px_60px_rgba(2,6,23,0.28)] md:inline-flex md:rounded-full md:bg-slate-950/72 md:p-0 md:shadow-[0_18px_60px_rgba(2,6,23,0.32)]">
+                <div className="min-w-0 flex-1 rounded-[16px] border border-white/8 bg-white/[0.03] px-12 py-10 md:hidden">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">
+                    Current level
+                  </p>
+                  <p className="mt-4 truncate text-sm text-white">{rail.label}</p>
+                </div>
+                <button
+                  type="button"
+                  data-universe-ui="true"
+                  onClick={() => {
+                    setNavCollapsed(false);
+                    if (compactTouch) {
+                      setMobileSheetState("half");
+                    }
+                  }}
+                  className="inline-flex w-full items-center justify-center gap-8 rounded-[16px] border border-white/10 bg-slate-900 px-12 py-12 text-xs font-medium uppercase tracking-[0.16em] text-slate-100 transition active:scale-[0.99] md:w-auto md:rounded-full md:bg-transparent md:px-12 md:py-10"
+                  aria-label="Open navigation sidebar"
+                >
+                  <ChevronsRight className="size-16" aria-hidden="true" />
+                  <span>Open nav</span>
+                </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
