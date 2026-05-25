@@ -667,57 +667,61 @@ export function UniverseMap2D({
           </motion.div>
         </AnimatePresence>
       )}
-      <motion.div
-        className="pointer-events-none absolute inset-0 overflow-hidden"
-        animate={{
-          x: reducedSceneMotion ? dragOffset.x * 0.03 : dragOffset.x * 0.08,
-          y: reducedSceneMotion ? dragOffset.y * 0.03 : dragOffset.y * 0.08,
-        }}
-        transition={
-          reducedSceneMotion
-            ? { duration: 0.18, ease: "linear" }
-            : { x: { type: "spring", stiffness: 70, damping: 24 }, y: { type: "spring", stiffness: 70, damping: 24 } }
-        }
-      >
-        {stars.map((star) => (
-          <motion.div
-            key={star.id}
-            className="absolute rounded-full bg-white"
-            style={{
-              left: `${star.x}%`,
-              top: `${star.y}%`,
-              width: star.size,
-              height: star.size,
-              opacity: star.opacity,
-              boxShadow: `0 0 ${star.glow}px rgba(255,255,255,0.32)`,
-            }}
-            animate={
-              reducedSceneMotion
-                ? { opacity: star.opacity, scale: 1 }
-                : {
-                    opacity: [star.opacity * 0.55, star.opacity, star.opacity * 0.55],
-                    scale: [1, 1.18, 1],
-                  }
-            }
-            transition={
-              reducedSceneMotion
-                ? { duration: 0.18, ease: "linear" }
-                : {
-                    opacity: {
-                      duration: 3 + star.depth * 6,
-                      repeat: Number.POSITIVE_INFINITY,
-                      ease: "easeInOut",
-                    },
-                    scale: {
-                      duration: 3 + star.depth * 5,
-                      repeat: Number.POSITIVE_INFINITY,
-                      ease: "easeInOut",
-                    },
-                  }
-            }
-          />
-        ))}
-      </motion.div>
+      {reducedSceneMotion ? (
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          {stars.map((star) => (
+            <div
+              key={star.id}
+              className="absolute rounded-full bg-white"
+              style={{
+                left: `${star.x}%`,
+                top: `${star.y}%`,
+                width: star.size,
+                height: star.size,
+                opacity: star.opacity,
+                boxShadow: `0 0 ${star.glow}px rgba(255,255,255,0.24)`,
+              }}
+            />
+          ))}
+        </div>
+      ) : (
+        <motion.div
+          className="pointer-events-none absolute inset-0 overflow-hidden"
+          animate={{ x: dragOffset.x * 0.08, y: dragOffset.y * 0.08 }}
+          transition={{ x: { type: "spring", stiffness: 70, damping: 24 }, y: { type: "spring", stiffness: 70, damping: 24 } }}
+        >
+          {stars.map((star) => (
+            <motion.div
+              key={star.id}
+              className="absolute rounded-full bg-white"
+              style={{
+                left: `${star.x}%`,
+                top: `${star.y}%`,
+                width: star.size,
+                height: star.size,
+                opacity: star.opacity,
+                boxShadow: `0 0 ${star.glow}px rgba(255,255,255,0.32)`,
+              }}
+              animate={{
+                opacity: [star.opacity * 0.55, star.opacity, star.opacity * 0.55],
+                scale: [1, 1.18, 1],
+              }}
+              transition={{
+                opacity: {
+                  duration: 3 + star.depth * 6,
+                  repeat: Number.POSITIVE_INFINITY,
+                  ease: "easeInOut",
+                },
+                scale: {
+                  duration: 3 + star.depth * 5,
+                  repeat: Number.POSITIVE_INFINITY,
+                  ease: "easeInOut",
+                },
+              }}
+            />
+          ))}
+        </motion.div>
+      )}
       <AnimatePresence>
         {transitionOrigin && !reducedSceneMotion ? (
           <motion.div
@@ -884,7 +888,7 @@ export function UniverseMap2D({
 
       <LayoutGroup id="orbyte-universe-map">
         <motion.div
-          key={`board-${transitionPulse > 0 ? transitionPulse : "base"}`}
+          key={reducedSceneMotion ? "board" : `board-${transitionPulse > 0 ? transitionPulse : "base"}`}
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
           style={{
             width: BOARD_WIDTH,

@@ -154,7 +154,7 @@ export function UniverseHud({
           };
 
   const is2D = presentation === "2d";
-  const effectiveNavCollapsed = compactTouch ? false : navCollapsed;
+  const effectiveNavCollapsed = navCollapsed;
   const effectiveMobileSheetState = compactTouch
     ? mobileSheetState === "full"
       ? "full"
@@ -267,17 +267,15 @@ export function UniverseHud({
                         Canvas navigation, context, and actions live here in a single scrollable rail.
                       </p>
                     </div>
-                    {!compactTouch ? (
-                      <button
-                        type="button"
-                        onClick={() => setNavCollapsed(true)}
-                        className="inline-flex shrink-0 items-center gap-8 rounded-full border border-white/10 bg-white/[0.04] px-12 py-8 text-xs font-medium uppercase tracking-[0.14em] text-slate-200 transition hover:bg-white/[0.08]"
-                        aria-label="Collapse navigation sidebar"
-                      >
-                        <ChevronsLeft className="size-16" aria-hidden="true" />
-                        <span>Close</span>
-                      </button>
-                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => setNavCollapsed(true)}
+                      className="inline-flex shrink-0 items-center gap-8 rounded-full border border-white/10 bg-white/[0.04] px-12 py-8 text-xs font-medium uppercase tracking-[0.14em] text-slate-200 transition hover:bg-white/[0.08]"
+                      aria-label="Collapse navigation sidebar"
+                    >
+                      <ChevronsLeft className="size-16" aria-hidden="true" />
+                      <span>Close</span>
+                    </button>
                   </div>
 
                   <div className={`mt-12 flex flex-wrap gap-8 ${effectiveMobileSheetState === "peek" ? "hidden md:flex" : ""}`}>
@@ -513,10 +511,10 @@ export function UniverseHud({
             <motion.div
               key="sidebar-closed"
               className="pointer-events-auto absolute bottom-4 left-4 z-30 md:left-12 md:top-12 md:bottom-auto"
-              initial={{ opacity: 0, y: 12 }}
+              initial={compactTouch ? false : { opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 12 }}
-              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              exit={compactTouch ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+              transition={compactTouch ? { duration: 0 } : { duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             >
               <button
                 type="button"
