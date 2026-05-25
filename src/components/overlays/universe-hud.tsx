@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useDragControls } from "framer-motion";
 import { ArrowLeft, ArrowRight, ArrowUp, ChevronsLeft, ChevronsRight, Compass, Eye, EyeOff, Map, Orbit, Settings2, Sparkles, Target, Waves } from "lucide-react";
 
 import { FocusPanel } from "@/components/overlays/focus-panel";
@@ -46,6 +46,7 @@ export function UniverseHud({
   const [manageHidden, setManageHidden] = useState(true);
   const [habitsHidden, setHabitsHidden] = useState(false);
   const [navCollapsed, setNavCollapsed] = useState(false);
+  const sheetDragControls = useDragControls();
   const canStepOut = Boolean(
     selectedGalaxyId || selectedObjectiveId || selectedTaskId || selectedSubtaskId,
   );
@@ -191,6 +192,7 @@ export function UniverseHud({
         <AnimatePresence initial={false}>
           {!navCollapsed ? (
             <motion.aside
+              data-universe-ui="true"
               key="sidebar-open"
               className={`pointer-events-auto absolute inset-x-4 bottom-4 top-auto z-30 flex overflow-hidden rounded-[24px] border border-white/10 bg-slate-950/58 shadow-[0_24px_120px_rgba(2,6,23,0.36)] backdrop-blur-2xl transition-[max-height] duration-300 md:inset-y-12 md:left-12 md:right-auto md:w-[380px] md:max-w-[calc(100vw-48px)] md:max-h-none md:rounded-[28px] ${mobileSheetHeight}`}
               initial={{ opacity: 0, y: 24 }}
@@ -198,6 +200,8 @@ export function UniverseHud({
               exit={{ opacity: 0, y: 24 }}
               transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
               drag="y"
+              dragControls={sheetDragControls}
+              dragListener={false}
               dragConstraints={{ top: 0, bottom: 0 }}
               dragElastic={0.08}
               dragMomentum={false}
@@ -212,18 +216,27 @@ export function UniverseHud({
               <div className="flex min-w-0 flex-1 flex-col">
                 <div className="border-b border-white/8 p-12 md:p-16">
                   <div className="mb-10 flex items-center justify-between gap-12 md:hidden">
+                    <motion.div
+                      data-universe-ui="true"
+                      className="mx-auto inline-flex items-center gap-8 rounded-full border border-white/10 bg-white/[0.04] px-12 py-6 text-[10px] uppercase tracking-[0.16em] text-slate-300"
+                      aria-label="Drag bottom sheet handle"
+                      onPointerDown={(event) => sheetDragControls.start(event)}
+                    >
+                      <span className="h-1.5 w-12 rounded-full bg-white/18" />
+                      <span>{mobileSheetState}</span>
+                    </motion.div>
                     <button
                       type="button"
+                      data-universe-ui="true"
                       onClick={() =>
                         setMobileSheetState((state) =>
                           state === "peek" ? "half" : state === "half" ? "full" : "peek",
                         )
                       }
-                      className="mx-auto inline-flex items-center gap-8 rounded-full border border-white/10 bg-white/[0.04] px-12 py-6 text-[10px] uppercase tracking-[0.16em] text-slate-300"
+                      className="sr-only"
                       aria-label="Cycle bottom sheet size"
                     >
-                      <span className="h-1.5 w-12 rounded-full bg-white/18" />
-                      <span>{mobileSheetState}</span>
+                      Cycle sheet
                     </button>
                   </div>
                   <div className="flex items-start justify-between gap-12">
@@ -240,6 +253,7 @@ export function UniverseHud({
                     </div>
                     <button
                       type="button"
+                      data-universe-ui="true"
                       onClick={() => setNavCollapsed(true)}
                       className="inline-flex shrink-0 items-center gap-8 rounded-full border border-white/10 bg-white/[0.04] px-12 py-8 text-xs font-medium uppercase tracking-[0.14em] text-slate-200 transition hover:bg-white/[0.08]"
                       aria-label="Collapse navigation sidebar"
@@ -252,6 +266,7 @@ export function UniverseHud({
                   <div className={`mt-12 flex flex-wrap gap-8 ${mobileSheetState === "peek" ? "hidden md:flex" : ""}`}>
                     <button
                       type="button"
+                      data-universe-ui="true"
                       onClick={zoomToMap}
                       className="inline-flex items-center gap-8 rounded-full border border-white/10 bg-slate-950/56 px-12 py-8 text-[10px] font-medium uppercase tracking-[0.16em] text-slate-200 transition hover:bg-slate-950/72"
                       aria-label="Zoom out to universe map"
@@ -261,6 +276,7 @@ export function UniverseHud({
                     </button>
                     <button
                       type="button"
+                      data-universe-ui="true"
                       onClick={stepOut}
                       disabled={!canStepOut}
                       className="inline-flex items-center gap-8 rounded-full border border-white/10 bg-slate-950/56 px-12 py-8 text-[10px] font-medium uppercase tracking-[0.16em] text-slate-200 transition hover:bg-slate-950/72 disabled:cursor-not-allowed disabled:opacity-40"
@@ -300,6 +316,7 @@ export function UniverseHud({
                         <button
                           key={tab.id}
                           type="button"
+                          data-universe-ui="true"
                           onClick={() => setSidebarPanel(tab.id)}
                           className={`inline-flex min-w-0 items-center justify-center gap-6 rounded-[14px] px-10 py-10 text-[10px] font-medium uppercase tracking-[0.16em] transition ${
                             active
@@ -355,6 +372,7 @@ export function UniverseHud({
                               <div className="mt-12 grid grid-cols-2 gap-8">
                                 <button
                                   type="button"
+                                  data-universe-ui="true"
                                   onClick={() => stepSelection("prev", universe)}
                                   className="inline-flex items-center justify-center gap-8 rounded-[16px] border border-white/10 bg-white/[0.03] px-12 py-10 text-xs uppercase tracking-[0.14em] text-slate-200 transition hover:bg-white/[0.06]"
                                   aria-label="Previous item"
@@ -364,6 +382,7 @@ export function UniverseHud({
                                 </button>
                                 <button
                                   type="button"
+                                  data-universe-ui="true"
                                   onClick={() => stepSelection("next", universe)}
                                   className="inline-flex items-center justify-center gap-8 rounded-[16px] border border-white/10 bg-white/[0.03] px-12 py-10 text-xs uppercase tracking-[0.14em] text-slate-200 transition hover:bg-white/[0.06]"
                                   aria-label="Next item"
@@ -485,6 +504,7 @@ export function UniverseHud({
             >
               <button
                 type="button"
+                data-universe-ui="true"
                 onClick={() => setNavCollapsed(false)}
                 className="inline-flex items-center gap-8 rounded-full border border-white/10 bg-slate-950/62 px-12 py-10 text-xs font-medium uppercase tracking-[0.16em] text-slate-100 shadow-[0_18px_60px_rgba(2,6,23,0.32)] backdrop-blur-xl transition hover:bg-slate-950/74"
                 aria-label="Open navigation sidebar"

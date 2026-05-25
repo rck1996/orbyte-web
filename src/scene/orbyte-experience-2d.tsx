@@ -24,10 +24,21 @@ export function OrbyteExperience2D({
   const [liveUniverse, setLiveUniverse] = useState(universe);
   const [liveWorkspace, setLiveWorkspace] = useState(workspace);
   const [transitionPulse, setTransitionPulse] = useState(0);
+  const [performanceMode, setPerformanceMode] = useState(false);
 
   useEffect(() => {
     bootstrap(null);
   }, [bootstrap, liveUniverse.galaxies]);
+
+  useEffect(() => {
+    const media = window.matchMedia("(pointer: coarse), (max-width: 767px)");
+    const update = () => setPerformanceMode(media.matches);
+
+    update();
+    media.addEventListener("change", update);
+
+    return () => media.removeEventListener("change", update);
+  }, []);
 
   useEffect(() => {
     const key = [selectedGalaxyId, selectedObjectiveId, selectedTaskId, selectedSubtaskId]
@@ -64,9 +75,10 @@ export function OrbyteExperience2D({
         workspace={liveWorkspace}
         transitionPulse={transitionPulse}
         onRefreshData={refreshData}
+        performanceMode={performanceMode}
       />
       <AnimatePresence>
-        {transitionPulse > 0 ? (
+        {transitionPulse > 0 && !performanceMode ? (
           <>
             <motion.div
               key={`fade-${transitionPulse}`}

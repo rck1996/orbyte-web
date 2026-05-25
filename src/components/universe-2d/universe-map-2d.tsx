@@ -50,11 +50,13 @@ export function UniverseMap2D({
   transitionPulse = 0,
   workspace,
   onRefreshData,
+  performanceMode = false,
 }: {
   universe: UniverseData;
   transitionPulse?: number;
   workspace: import("@/types/domain").WorkspaceDomain;
   onRefreshData: () => Promise<void>;
+  performanceMode?: boolean;
 }) {
   const selectedGalaxyId = useUniverseStore((state) => state.selectedGalaxyId);
   const selectedObjectiveId = useUniverseStore((state) => state.selectedObjectiveId);
@@ -157,7 +159,11 @@ export function UniverseMap2D({
       }),
     [objective?.habits?.length, sceneCenter],
   );
-  const stars = useMemo(() => buildStars(prefersReducedMotion ? 96 : 160), [prefersReducedMotion]);
+  const reducedSceneMotion = prefersReducedMotion || performanceMode;
+  const stars = useMemo(
+    () => buildStars(reducedSceneMotion ? 24 : 96),
+    [reducedSceneMotion],
+  );
 
   const showOverview = !galaxy;
   const showGalaxyView = galaxy && !objective;
@@ -624,7 +630,7 @@ export function UniverseMap2D({
         onRefreshData={onRefreshData}
       />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(148,163,184,0.08),transparent_46%),linear-gradient(180deg,rgba(2,6,23,0.24),rgba(2,6,23,0.7))]" />
-      <div className="pointer-events-none absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.08)_1px,transparent_1px)] [background-size:96px_96px]" />
+      <div className={`pointer-events-none absolute inset-0 [background-image:linear-gradient(rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.08)_1px,transparent_1px)] [background-size:96px_96px] ${reducedSceneMotion ? "opacity-10" : "opacity-30"}`} />
       <AnimatePresence mode="wait">
         <motion.div
           key={breadcrumb.join(":")}
@@ -648,8 +654,15 @@ export function UniverseMap2D({
       </AnimatePresence>
       <motion.div
         className="pointer-events-none absolute inset-0 overflow-hidden"
-        animate={{ x: dragOffset.x * 0.08, y: dragOffset.y * 0.08 }}
-        transition={{ x: { type: "spring", stiffness: 70, damping: 24 }, y: { type: "spring", stiffness: 70, damping: 24 } }}
+        animate={{
+          x: reducedSceneMotion ? dragOffset.x * 0.03 : dragOffset.x * 0.08,
+          y: reducedSceneMotion ? dragOffset.y * 0.03 : dragOffset.y * 0.08,
+        }}
+        transition={
+          reducedSceneMotion
+            ? { duration: 0.18, ease: "linear" }
+            : { x: { type: "spring", stiffness: 70, damping: 24 }, y: { type: "spring", stiffness: 70, damping: 24 } }
+        }
       >
         {stars.map((star) => (
           <motion.div
@@ -663,27 +676,35 @@ export function UniverseMap2D({
               opacity: star.opacity,
               boxShadow: `0 0 ${star.glow}px rgba(255,255,255,0.32)`,
             }}
-            animate={{
-              opacity: [star.opacity * 0.55, star.opacity, star.opacity * 0.55],
-              scale: [1, 1.18, 1],
-            }}
-            transition={{
-              opacity: {
-                duration: 3 + star.depth * 6,
-                repeat: prefersReducedMotion ? 0 : Number.POSITIVE_INFINITY,
-                ease: "easeInOut",
-              },
-              scale: {
-                duration: 3 + star.depth * 5,
-                repeat: prefersReducedMotion ? 0 : Number.POSITIVE_INFINITY,
-                ease: "easeInOut",
-              },
-            }}
+            animate={
+              reducedSceneMotion
+                ? { opacity: star.opacity, scale: 1 }
+                : {
+                    opacity: [star.opacity * 0.55, star.opacity, star.opacity * 0.55],
+                    scale: [1, 1.18, 1],
+                  }
+            }
+            transition={
+              reducedSceneMotion
+                ? { duration: 0.18, ease: "linear" }
+                : {
+                    opacity: {
+                      duration: 3 + star.depth * 6,
+                      repeat: Number.POSITIVE_INFINITY,
+                      ease: "easeInOut",
+                    },
+                    scale: {
+                      duration: 3 + star.depth * 5,
+                      repeat: Number.POSITIVE_INFINITY,
+                      ease: "easeInOut",
+                    },
+                  }
+            }
           />
         ))}
       </motion.div>
       <AnimatePresence>
-        {transitionOrigin ? (
+        {transitionOrigin && !reducedSceneMotion ? (
           <motion.div
             key={`${transitionOrigin.label}-${transitionPulse}`}
             className="pointer-events-none absolute inset-0 z-[18]"
@@ -848,7 +869,7 @@ export function UniverseMap2D({
 
       <LayoutGroup id="orbyte-universe-map">
         <motion.div
-          key={`board-${transitionPulse > 0 ? transitionPulse : "base"}`}
+          key="board"
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
           style={{
             width: BOARD_WIDTH,
@@ -861,7 +882,9 @@ export function UniverseMap2D({
             x: dragOffset.x,
             y: dragOffset.y,
             filter: transitionOrigin
-              ? "blur(1.6px) saturate(0.84) brightness(0.92)"
+              ? reducedSceneMotion
+                ? "none"
+                : "blur(1.6px) saturate(0.84) brightness(0.92)"
               : "blur(0px) saturate(1) brightness(1)",
           }}
           transition={{
