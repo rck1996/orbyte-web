@@ -159,16 +159,16 @@ export function UniverseMap2D({
       }),
     [objective?.habits?.length, sceneCenter],
   );
-  const reducedSceneMotion = prefersReducedMotion || performanceMode;
-  const stars = useMemo(
-    () => buildStars(reducedSceneMotion ? 24 : 96),
-    [reducedSceneMotion],
-  );
-
   const showOverview = !galaxy;
   const showGalaxyView = galaxy && !objective;
   const showObjectiveView = objective && !task;
   const showTaskView = objective && task;
+  const reducedSceneMotion = prefersReducedMotion || performanceMode;
+  const lightweightOverview = reducedSceneMotion && showOverview;
+  const stars = useMemo(
+    () => buildStars(lightweightOverview ? 0 : reducedSceneMotion ? 24 : 96),
+    [lightweightOverview, reducedSceneMotion],
+  );
   const minimapPoints = useMemo(() => {
     if (showOverview) {
       return [sceneCenter, ...galaxyPoints];
@@ -1026,9 +1026,10 @@ export function UniverseMap2D({
         {showOverview ? (
           <motion.div
             key={`overview-${transitionPulse}`}
-            variants={sectionVariants}
-            initial="hidden"
-            animate="visible"
+            variants={lightweightOverview ? undefined : sectionVariants}
+            initial={lightweightOverview ? false : "hidden"}
+            animate={lightweightOverview ? { opacity: 1 } : "visible"}
+            transition={lightweightOverview ? { duration: 0 } : undefined}
           >
             <HubBadge
               title={universe.title}
@@ -1036,6 +1037,7 @@ export function UniverseMap2D({
               description="Categories are flattened into a 2D navigation surface to make the whole universe easier to scan."
               point={sceneCenter}
               introOrigin={transitionOrigin?.point ?? null}
+              reducedMotion={lightweightOverview}
             />
             {universe.galaxies.map((item, index) => (
               <GalaxyCard
@@ -1043,7 +1045,7 @@ export function UniverseMap2D({
                 galaxy={item}
                 point={galaxyPoints[index]}
                 introOrigin={transitionOrigin?.point ?? null}
-                reducedMotion={reducedSceneMotion}
+                reducedMotion
                 onSelect={() =>
                   beginSelectionTransition({
                     point: galaxyPoints[index],
@@ -1342,6 +1344,7 @@ function HubBadge({
   accent = "#7dd3fc",
   layoutId,
   introOrigin,
+  reducedMotion = false,
 }: {
   title: string;
   subtitle: string;
@@ -1350,6 +1353,7 @@ function HubBadge({
   accent?: string;
   layoutId?: string;
   introOrigin?: Point | null;
+  reducedMotion?: boolean;
 }) {
   const delay = entranceDelay(point, introOrigin ?? null);
 
@@ -1357,11 +1361,11 @@ function HubBadge({
       <motion.div
         data-universe-node="true"
         layoutId={layoutId}
-        className="absolute w-[264px] -translate-x-1/2 -translate-y-1/2 rounded-[28px] border border-white/12 bg-slate-950/74 p-16 shadow-[0_24px_100px_rgba(2,6,23,0.45)] backdrop-blur-2xl"
+      className="absolute w-[264px] -translate-x-1/2 -translate-y-1/2 rounded-[28px] border border-white/12 bg-slate-950/74 p-16 shadow-[0_24px_100px_rgba(2,6,23,0.45)] backdrop-blur-2xl"
       style={{ left: point.x, top: point.y }}
-      initial={{ opacity: 0, scale: 0.96, y: 12 }}
+      initial={reducedMotion ? false : { opacity: 0, scale: 0.96, y: 12 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ duration: 0.45, delay, ease: [0.22, 1, 0.36, 1] }}
+      transition={reducedMotion ? { duration: 0 } : { duration: 0.45, delay, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="flex items-center gap-12">
         <div
