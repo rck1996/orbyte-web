@@ -28,7 +28,7 @@ export function OrbyteExperience2D({
 
   useEffect(() => {
     bootstrap(null);
-  }, [bootstrap, liveUniverse.galaxies]);
+  }, [bootstrap]);
 
   useEffect(() => {
     const media = window.matchMedia("(pointer: coarse), (max-width: 767px)");

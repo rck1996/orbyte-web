@@ -510,7 +510,8 @@ export function UniverseHud({
           ) : (
             <motion.div
               key="sidebar-closed"
-              className="pointer-events-auto absolute bottom-4 left-4 z-30 md:left-12 md:top-12 md:bottom-auto"
+              data-universe-ui="true"
+              className="pointer-events-auto absolute bottom-4 left-4 right-4 z-40 md:left-12 md:right-auto md:top-12 md:bottom-auto"
               initial={compactTouch ? false : { opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={compactTouch ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
@@ -518,8 +519,14 @@ export function UniverseHud({
             >
               <button
                 type="button"
-                onClick={() => setNavCollapsed(false)}
-                className="inline-flex items-center gap-8 rounded-full border border-white/10 bg-slate-950/62 px-12 py-10 text-xs font-medium uppercase tracking-[0.16em] text-slate-100 shadow-[0_18px_60px_rgba(2,6,23,0.32)] backdrop-blur-xl transition hover:bg-slate-950/74"
+                data-universe-ui="true"
+                onClick={() => {
+                  setNavCollapsed(false);
+                  if (compactTouch) {
+                    setMobileSheetState("half");
+                  }
+                }}
+                className="inline-flex w-full items-center justify-center gap-8 rounded-full border border-white/10 bg-slate-950/72 px-12 py-12 text-xs font-medium uppercase tracking-[0.16em] text-slate-100 shadow-[0_18px_60px_rgba(2,6,23,0.32)] backdrop-blur-xl transition hover:bg-slate-950/80 md:w-auto md:justify-start md:px-12 md:py-10"
                 aria-label="Open navigation sidebar"
               >
                 <ChevronsRight className="size-16" aria-hidden="true" />
