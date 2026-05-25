@@ -175,8 +175,8 @@ export function UniverseHud({
       mobileSheetState === "peek"
         ? "max-h-[164px]"
         : mobileSheetState === "half"
-          ? "max-h-[68vh]"
-          : "max-h-[calc(100vh-24px)]";
+          ? "max-h-[68svh] md:max-h-[68vh]"
+          : "max-h-[calc(100svh-24px)] max-h-[calc(100dvh-24px)] md:max-h-none";
 
     return (
       <div className="pointer-events-none absolute inset-0 z-20">
@@ -194,7 +194,7 @@ export function UniverseHud({
             <motion.aside
               data-universe-ui="true"
               key="sidebar-open"
-              className={`pointer-events-auto absolute inset-x-4 bottom-4 top-auto z-30 flex overflow-hidden rounded-[24px] border border-white/10 bg-slate-950/58 shadow-[0_24px_120px_rgba(2,6,23,0.36)] backdrop-blur-2xl transition-[max-height] duration-300 md:inset-y-12 md:left-12 md:right-auto md:w-[380px] md:max-w-[calc(100vw-48px)] md:max-h-none md:rounded-[28px] ${mobileSheetHeight}`}
+              className={`pointer-events-auto absolute inset-x-4 bottom-4 top-auto z-30 flex overflow-hidden rounded-[24px] border border-white/10 bg-slate-950/58 shadow-[0_24px_120px_rgba(2,6,23,0.36)] backdrop-blur-2xl transition-none md:transition-[max-height] md:duration-300 md:inset-y-12 md:left-12 md:right-auto md:w-[380px] md:max-w-[calc(100vw-48px)] md:max-h-none md:rounded-[28px] ${mobileSheetHeight}`}
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 24 }}

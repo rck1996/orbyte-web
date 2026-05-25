@@ -103,7 +103,7 @@ export function TaskFocusModal({
         <motion.div
           key={currentEntityKey}
           data-universe-ui="true"
-          className="absolute inset-x-4 bottom-4 max-h-[calc(100vh-32px)] overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/88 p-16 shadow-[0_30px_120px_rgba(2,6,23,0.46)] backdrop-blur-2xl md:inset-x-auto md:bottom-12 md:left-1/2 md:max-h-[min(88vh,820px)] md:w-[520px] md:-translate-x-1/2"
+          className="absolute inset-x-4 bottom-4 max-h-[calc(100svh-32px)] max-h-[calc(100dvh-32px)] overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/88 p-16 shadow-[0_30px_120px_rgba(2,6,23,0.46)] backdrop-blur-2xl md:inset-x-auto md:bottom-12 md:left-1/2 md:max-h-[min(88vh,820px)] md:w-[520px] md:-translate-x-1/2"
           initial={{ opacity: 0, y: 24, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 20, scale: 0.98 }}
@@ -139,7 +139,7 @@ export function TaskFocusModal({
             </button>
           </div>
 
-          <div className="mt-16 grid max-h-[calc(100vh-164px)] gap-12 overflow-y-auto pr-4 md:max-h-[min(72vh,640px)]" style={{ touchAction: "pan-y" }}>
+          <div className="mt-16 grid max-h-[calc(100svh-164px)] max-h-[calc(100dvh-164px)] gap-12 overflow-y-auto pr-4 md:max-h-[min(72vh,640px)]" style={{ touchAction: "pan-y" }}>
             <div className="grid gap-8">
               <button
                 type="button"

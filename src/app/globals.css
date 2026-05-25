@@ -54,10 +54,13 @@ html {
 
 body {
   min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
   background: transparent;
   color: var(--foreground);
   font-family: var(--font-geist-sans), sans-serif;
   overflow-x: clip;
+  overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
 }
 
