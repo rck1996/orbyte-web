@@ -530,7 +530,7 @@ export function UniverseHud({
               exit={compactTouch ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
               transition={compactTouch ? { duration: 0 } : { duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             >
-              <div className="flex items-center gap-8 rounded-[22px] border border-white/10 bg-slate-950/88 p-8 shadow-[0_18px_60px_rgba(2,6,23,0.28)] md:inline-flex md:rounded-full md:bg-slate-950/72 md:p-0 md:shadow-[0_18px_60px_rgba(2,6,23,0.32)]">
+              <div className="flex flex-col gap-8 rounded-[22px] border border-white/10 bg-slate-950/88 p-8 shadow-[0_18px_60px_rgba(2,6,23,0.28)] md:inline-flex md:flex-row md:items-center md:rounded-full md:bg-slate-950/72 md:p-0 md:shadow-[0_18px_60px_rgba(2,6,23,0.32)]">
                 <div className="min-w-0 flex-1 rounded-[16px] border border-white/8 bg-white/[0.03] px-12 py-10 md:hidden">
                   <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">
                     Current level
@@ -546,7 +546,7 @@ export function UniverseHud({
                       setMobileSheetState("half");
                     }
                   }}
-                  className="inline-flex w-full items-center justify-center gap-8 rounded-[16px] border border-white/10 bg-slate-900 px-12 py-12 text-xs font-medium uppercase tracking-[0.16em] text-slate-100 transition active:scale-[0.99] md:w-auto md:rounded-full md:bg-transparent md:px-12 md:py-10"
+                  className="inline-flex w-full shrink-0 items-center justify-center gap-8 rounded-[16px] border border-white/10 bg-slate-900 px-12 py-12 text-xs font-medium uppercase tracking-[0.16em] text-slate-100 transition active:scale-[0.99] md:w-auto md:rounded-full md:bg-transparent md:px-12 md:py-10"
                   aria-label="Open navigation sidebar"
                 >
                   <ChevronsRight className="size-16" aria-hidden="true" />
