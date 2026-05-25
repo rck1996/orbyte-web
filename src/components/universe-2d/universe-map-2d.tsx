@@ -160,6 +160,7 @@ export function UniverseMap2D({
     [objective?.habits?.length, sceneCenter],
   );
   const reducedSceneMotion = prefersReducedMotion || performanceMode;
+  const compactTouchMode = performanceMode;
   const stars = useMemo(
     () => buildStars(reducedSceneMotion ? 24 : 96),
     [reducedSceneMotion],
@@ -631,15 +632,8 @@ export function UniverseMap2D({
       />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(148,163,184,0.08),transparent_46%),linear-gradient(180deg,rgba(2,6,23,0.24),rgba(2,6,23,0.7))]" />
       <div className={`pointer-events-none absolute inset-0 [background-image:linear-gradient(rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.08)_1px,transparent_1px)] [background-size:96px_96px] ${reducedSceneMotion ? "opacity-10" : "opacity-30"}`} />
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={breadcrumb.join(":")}
-          className="pointer-events-none absolute left-1/2 top-8 z-20 flex -translate-x-1/2 flex-wrap items-center justify-center gap-8 px-16 md:top-12"
-          initial={{ opacity: 0, y: -12 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.28, ease: premiumEase }}
-        >
+      {compactTouchMode ? (
+        <div className="pointer-events-none absolute left-1/2 top-8 z-20 flex -translate-x-1/2 flex-wrap items-center justify-center gap-8 px-16 md:top-12">
           {breadcrumb.map((segment, index) => (
             <div key={`${segment}-${index}`} className="flex items-center gap-8">
               <span className="rounded-full border border-white/10 bg-slate-950/60 px-12 py-8 text-[10px] uppercase tracking-[0.18em] text-slate-200 backdrop-blur-xl">
@@ -650,8 +644,30 @@ export function UniverseMap2D({
               ) : null}
             </div>
           ))}
-        </motion.div>
-      </AnimatePresence>
+        </div>
+      ) : (
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={breadcrumb.join(":")}
+            className="pointer-events-none absolute left-1/2 top-8 z-20 flex -translate-x-1/2 flex-wrap items-center justify-center gap-8 px-16 md:top-12"
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.28, ease: premiumEase }}
+          >
+            {breadcrumb.map((segment, index) => (
+              <div key={`${segment}-${index}`} className="flex items-center gap-8">
+                <span className="rounded-full border border-white/10 bg-slate-950/60 px-12 py-8 text-[10px] uppercase tracking-[0.18em] text-slate-200 backdrop-blur-xl">
+                  {segment}
+                </span>
+                {index < breadcrumb.length - 1 ? (
+                  <span className="text-[10px] uppercase tracking-[0.18em] text-slate-500">/</span>
+                ) : null}
+              </div>
+            ))}
+          </motion.div>
+        </AnimatePresence>
+      )}
       <motion.div
         className="pointer-events-none absolute inset-0 overflow-hidden"
         animate={{
@@ -875,32 +891,40 @@ export function UniverseMap2D({
             width: BOARD_WIDTH,
             height: BOARD_HEIGHT,
           }}
-          initial={{ opacity: 0, scale: 0.98 }}
+          initial={compactTouchMode ? false : { opacity: 0, scale: 0.98 }}
           animate={{
             opacity: 1,
             scale: zoom,
             x: dragOffset.x,
             y: dragOffset.y,
             filter: transitionOrigin
-              ? reducedSceneMotion
+              ? compactTouchMode
+                ? "none"
+                : reducedSceneMotion
                 ? "none"
                 : "blur(1.6px) saturate(0.84) brightness(0.92)"
               : "blur(0px) saturate(1) brightness(1)",
           }}
           transition={{
-            opacity: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
-            scale: prefersReducedMotion
+            opacity: compactTouchMode ? { duration: 0 } : { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
+            scale: compactTouchMode
+              ? { duration: 0 }
+              : prefersReducedMotion
               ? { duration: 0.2, ease: "linear" }
               : { type: "spring", stiffness: 120, damping: 24, mass: 0.7 },
-            x:
+            x: compactTouchMode
+              ? { duration: 0 }
+              :
               panMotionMode === "direct"
                 ? { duration: 0.12, ease: premiumEase }
                 : { type: "spring", stiffness: 120, damping: 24, mass: 0.6 },
-            y:
+            y: compactTouchMode
+              ? { duration: 0 }
+              :
               panMotionMode === "direct"
                 ? { duration: 0.12, ease: premiumEase }
                 : { type: "spring", stiffness: 120, damping: 24, mass: 0.6 },
-            filter: { duration: 0.26, ease: premiumEase },
+            filter: compactTouchMode ? { duration: 0 } : { duration: 0.26, ease: premiumEase },
           }}
         >
         <svg className="pointer-events-none absolute inset-0 h-full w-full">
