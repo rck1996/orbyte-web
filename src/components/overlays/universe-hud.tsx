@@ -46,9 +46,20 @@ export function UniverseHud({
   const [manageHidden, setManageHidden] = useState(true);
   const [habitsHidden, setHabitsHidden] = useState(false);
   const [navCollapsed, setNavCollapsed] = useState(false);
+  const [compactTouch, setCompactTouch] = useState(false);
   const canStepOut = Boolean(
     selectedGalaxyId || selectedObjectiveId || selectedTaskId || selectedSubtaskId,
   );
+
+  useEffect(() => {
+    const media = window.matchMedia("(pointer: coarse) and (max-width: 767px)");
+    const update = () => setCompactTouch(media.matches);
+
+    update();
+    media.addEventListener("change", update);
+
+    return () => media.removeEventListener("change", update);
+  }, []);
 
   useEffect(() => {
     if (!canStepOut) {
@@ -143,8 +154,18 @@ export function UniverseHud({
           };
 
   const is2D = presentation === "2d";
+  const effectiveNavCollapsed = compactTouch ? false : navCollapsed;
+  const effectiveMobileSheetState = compactTouch
+    ? mobileSheetState === "full"
+      ? "full"
+      : "half"
+    : mobileSheetState;
 
   function resolveSheetState(offsetY: number) {
+    if (compactTouch) {
+      return offsetY < -56 ? "full" : "half";
+    }
+
     if (offsetY < -72) {
       return "full";
     }
@@ -171,11 +192,11 @@ export function UniverseHud({
     ].filter((item): item is string => Boolean(item));
 
     const mobileSheetHeight =
-      mobileSheetState === "peek"
+      effectiveMobileSheetState === "peek"
         ? "max-h-[164px]"
-        : mobileSheetState === "half"
-          ? "max-h-[68vh]"
-          : "max-h-[calc(100vh-24px)]";
+        : effectiveMobileSheetState === "half"
+          ? "max-h-[68svh] md:max-h-[68vh]"
+          : "max-h-[calc(100svh-24px)] max-h-[calc(100dvh-24px)] md:max-h-none";
 
     return (
       <div className="pointer-events-none absolute inset-0 z-20">
@@ -189,15 +210,15 @@ export function UniverseHud({
           onRefreshData={onRefreshData}
         />
         <AnimatePresence initial={false}>
-          {!navCollapsed ? (
+          {!effectiveNavCollapsed ? (
             <motion.aside
               key="sidebar-open"
-              className={`pointer-events-auto absolute inset-x-4 bottom-4 top-auto z-30 flex overflow-hidden rounded-[24px] border border-white/10 bg-slate-950/58 shadow-[0_24px_120px_rgba(2,6,23,0.36)] backdrop-blur-2xl transition-[max-height] duration-300 md:inset-y-12 md:left-12 md:right-auto md:w-[380px] md:max-w-[calc(100vw-48px)] md:max-h-none md:rounded-[28px] ${mobileSheetHeight}`}
-              initial={{ opacity: 0, y: 24 }}
+              className={`pointer-events-auto absolute inset-x-4 bottom-4 top-auto z-30 flex overflow-hidden rounded-[24px] border border-white/10 bg-slate-950/58 shadow-[0_24px_120px_rgba(2,6,23,0.36)] backdrop-blur-2xl transition-none md:transition-[max-height] md:duration-300 md:inset-y-12 md:left-12 md:right-auto md:w-[380px] md:max-w-[calc(100vw-48px)] md:max-h-none md:rounded-[28px] ${mobileSheetHeight}`}
+              initial={compactTouch ? false : { opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 24 }}
-              transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-              drag="y"
+              exit={compactTouch ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
+              transition={compactTouch ? { duration: 0 } : { duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+              drag={compactTouch ? false : "y"}
               dragConstraints={{ top: 0, bottom: 0 }}
               dragElastic={0.08}
               dragMomentum={false}
@@ -216,14 +237,22 @@ export function UniverseHud({
                       type="button"
                       onClick={() =>
                         setMobileSheetState((state) =>
-                          state === "peek" ? "half" : state === "half" ? "full" : "peek",
+                          compactTouch
+                            ? state === "full"
+                              ? "half"
+                              : "full"
+                            : state === "peek"
+                              ? "half"
+                              : state === "half"
+                                ? "full"
+                                : "peek",
                         )
                       }
                       className="mx-auto inline-flex items-center gap-8 rounded-full border border-white/10 bg-white/[0.04] px-12 py-6 text-[10px] uppercase tracking-[0.16em] text-slate-300"
                       aria-label="Cycle bottom sheet size"
                     >
                       <span className="h-1.5 w-12 rounded-full bg-white/18" />
-                      <span>{mobileSheetState}</span>
+                      <span>{effectiveMobileSheetState}</span>
                     </button>
                   </div>
                   <div className="flex items-start justify-between gap-12">
@@ -238,18 +267,20 @@ export function UniverseHud({
                         Canvas navigation, context, and actions live here in a single scrollable rail.
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setNavCollapsed(true)}
-                      className="inline-flex shrink-0 items-center gap-8 rounded-full border border-white/10 bg-white/[0.04] px-12 py-8 text-xs font-medium uppercase tracking-[0.14em] text-slate-200 transition hover:bg-white/[0.08]"
-                      aria-label="Collapse navigation sidebar"
-                    >
-                      <ChevronsLeft className="size-16" aria-hidden="true" />
-                      <span>Close</span>
-                    </button>
+                    {!compactTouch ? (
+                      <button
+                        type="button"
+                        onClick={() => setNavCollapsed(true)}
+                        className="inline-flex shrink-0 items-center gap-8 rounded-full border border-white/10 bg-white/[0.04] px-12 py-8 text-xs font-medium uppercase tracking-[0.14em] text-slate-200 transition hover:bg-white/[0.08]"
+                        aria-label="Collapse navigation sidebar"
+                      >
+                        <ChevronsLeft className="size-16" aria-hidden="true" />
+                        <span>Close</span>
+                      </button>
+                    ) : null}
                   </div>
 
-                  <div className={`mt-12 flex flex-wrap gap-8 ${mobileSheetState === "peek" ? "hidden md:flex" : ""}`}>
+                  <div className={`mt-12 flex flex-wrap gap-8 ${effectiveMobileSheetState === "peek" ? "hidden md:flex" : ""}`}>
                     <button
                       type="button"
                       onClick={zoomToMap}
@@ -271,7 +302,7 @@ export function UniverseHud({
                     </button>
                   </div>
 
-                  <div className={`mt-12 flex flex-wrap gap-8 ${mobileSheetState === "peek" ? "hidden md:flex" : ""}`}>
+                  <div className={`mt-12 flex flex-wrap gap-8 ${effectiveMobileSheetState === "peek" ? "hidden md:flex" : ""}`}>
                     <span className="rounded-full border border-sky-300/16 bg-sky-400/10 px-10 py-6 text-[10px] uppercase tracking-[0.18em] text-sky-100">
                       {rail.label}
                     </span>
@@ -291,7 +322,7 @@ export function UniverseHud({
                     )}
                   </div>
 
-                  <div className={`mt-12 grid grid-cols-2 gap-8 rounded-[18px] border border-white/8 bg-white/[0.03] p-8 md:grid-cols-4 ${mobileSheetState === "peek" ? "hidden md:grid" : ""}`}>
+                  <div className={`mt-12 grid grid-cols-2 gap-8 rounded-[18px] border border-white/8 bg-white/[0.03] p-8 md:grid-cols-4 ${effectiveMobileSheetState === "peek" ? "hidden md:grid" : ""}`}>
                     {panelTabs.map((tab) => {
                       const Icon = tab.icon;
                       const active = sidebarPanel === tab.id;
@@ -317,15 +348,17 @@ export function UniverseHud({
                 </div>
 
                 <AnimatePresence initial={false}>
-                  {!navCollapsed ? (
+                  {!effectiveNavCollapsed ? (
                     <motion.div
                       key={`nav-content-${sidebarPanel}`}
-                      className={`min-h-0 flex-1 overflow-y-auto p-12 ${mobileSheetState === "peek" ? "hidden md:block" : ""}`}
+                      className={`min-h-0 flex-1 overflow-y-auto p-12 ${
+                        effectiveMobileSheetState === "peek" && sidebarPanel !== "navigate" ? "hidden md:block" : ""
+                      }`}
                       style={{ touchAction: "pan-y" }}
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={compactTouch ? false : { opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+                      exit={compactTouch ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+                      transition={compactTouch ? { duration: 0 } : { duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
                     >
                       <div className="grid gap-8">
                         {sidebarPanel === "navigate" ? (
@@ -392,10 +425,12 @@ export function UniverseHud({
 
                             {!introHidden ? (
                               <motion.div
-                                className="w-full rounded-[20px] border border-white/10 bg-slate-950/34 p-12 shadow-[0_18px_80px_rgba(2,6,23,0.2)] backdrop-blur-2xl"
-                                initial={{ opacity: 0, y: 8 }}
+                                className={`w-full rounded-[20px] border border-white/10 bg-slate-950/34 p-12 shadow-[0_18px_80px_rgba(2,6,23,0.2)] backdrop-blur-2xl ${
+                                  effectiveMobileSheetState === "peek" ? "hidden md:block" : ""
+                                }`}
+                                initial={compactTouch ? false : { opacity: 0, y: 8 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                                transition={compactTouch ? { duration: 0 } : { duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
                               >
                                 <div className="flex flex-wrap items-center gap-12">
                                   <div className="flex size-32 items-center justify-center rounded-full border border-white/10 bg-white/8 text-white">
@@ -459,7 +494,7 @@ export function UniverseHud({
                     </motion.div>
                   ) : null}
                 </AnimatePresence>
-                <div className={`border-t border-white/8 px-12 py-10 md:hidden ${mobileSheetState === "peek" ? "" : "hidden"}`}>
+                <div className="border-t border-white/8 px-12 py-10 md:hidden">
                   <div className="flex items-center justify-between gap-12">
                     <div>
                       <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">

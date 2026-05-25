@@ -54,10 +54,14 @@ html {
 
 body {
   min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
   background: transparent;
   color: var(--foreground);
   font-family: var(--font-geist-sans), sans-serif;
   overflow-x: clip;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 ::selection {
@@ -91,5 +95,12 @@ body {
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+}
+
+@media (pointer: coarse), (max-width: 767px) {
+  [class*="backdrop-blur"] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 }

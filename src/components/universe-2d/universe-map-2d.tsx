@@ -50,11 +50,13 @@ export function UniverseMap2D({
   transitionPulse = 0,
   workspace,
   onRefreshData,
+  performanceMode = false,
 }: {
   universe: UniverseData;
   transitionPulse?: number;
   workspace: import("@/types/domain").WorkspaceDomain;
   onRefreshData: () => Promise<void>;
+  performanceMode?: boolean;
 }) {
   const selectedGalaxyId = useUniverseStore((state) => state.selectedGalaxyId);
   const selectedObjectiveId = useUniverseStore((state) => state.selectedObjectiveId);
@@ -157,7 +159,11 @@ export function UniverseMap2D({
       }),
     [objective?.habits?.length, sceneCenter],
   );
-  const stars = useMemo(() => buildStars(prefersReducedMotion ? 96 : 160), [prefersReducedMotion]);
+  const reducedSceneMotion = prefersReducedMotion || performanceMode;
+  const stars = useMemo(
+    () => buildStars(reducedSceneMotion ? 24 : 96),
+    [reducedSceneMotion],
+  );
 
   const showOverview = !galaxy;
   const showGalaxyView = galaxy && !objective;
@@ -624,16 +630,9 @@ export function UniverseMap2D({
         onRefreshData={onRefreshData}
       />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(148,163,184,0.08),transparent_46%),linear-gradient(180deg,rgba(2,6,23,0.24),rgba(2,6,23,0.7))]" />
-      <div className="pointer-events-none absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.08)_1px,transparent_1px)] [background-size:96px_96px]" />
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={breadcrumb.join(":")}
-          className="pointer-events-none absolute left-1/2 top-8 z-20 flex -translate-x-1/2 flex-wrap items-center justify-center gap-8 px-16 md:top-12"
-          initial={{ opacity: 0, y: -12 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.28, ease: premiumEase }}
-        >
+      <div className={`pointer-events-none absolute inset-0 [background-image:linear-gradient(rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.08)_1px,transparent_1px)] [background-size:96px_96px] ${reducedSceneMotion ? "opacity-10" : "opacity-30"}`} />
+      {reducedSceneMotion ? (
+        <div className="pointer-events-none absolute left-1/2 top-8 z-20 flex -translate-x-1/2 flex-wrap items-center justify-center gap-8 px-16 md:top-12">
           {breadcrumb.map((segment, index) => (
             <div key={`${segment}-${index}`} className="flex items-center gap-8">
               <span className="rounded-full border border-white/10 bg-slate-950/60 px-12 py-8 text-[10px] uppercase tracking-[0.18em] text-slate-200 backdrop-blur-xl">
@@ -644,12 +643,41 @@ export function UniverseMap2D({
               ) : null}
             </div>
           ))}
-        </motion.div>
-      </AnimatePresence>
+        </div>
+      ) : (
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={breadcrumb.join(":")}
+            className="pointer-events-none absolute left-1/2 top-8 z-20 flex -translate-x-1/2 flex-wrap items-center justify-center gap-8 px-16 md:top-12"
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.28, ease: premiumEase }}
+          >
+            {breadcrumb.map((segment, index) => (
+              <div key={`${segment}-${index}`} className="flex items-center gap-8">
+                <span className="rounded-full border border-white/10 bg-slate-950/60 px-12 py-8 text-[10px] uppercase tracking-[0.18em] text-slate-200 backdrop-blur-xl">
+                  {segment}
+                </span>
+                {index < breadcrumb.length - 1 ? (
+                  <span className="text-[10px] uppercase tracking-[0.18em] text-slate-500">/</span>
+                ) : null}
+              </div>
+            ))}
+          </motion.div>
+        </AnimatePresence>
+      )}
       <motion.div
         className="pointer-events-none absolute inset-0 overflow-hidden"
-        animate={{ x: dragOffset.x * 0.08, y: dragOffset.y * 0.08 }}
-        transition={{ x: { type: "spring", stiffness: 70, damping: 24 }, y: { type: "spring", stiffness: 70, damping: 24 } }}
+        animate={{
+          x: reducedSceneMotion ? dragOffset.x * 0.03 : dragOffset.x * 0.08,
+          y: reducedSceneMotion ? dragOffset.y * 0.03 : dragOffset.y * 0.08,
+        }}
+        transition={
+          reducedSceneMotion
+            ? { duration: 0.18, ease: "linear" }
+            : { x: { type: "spring", stiffness: 70, damping: 24 }, y: { type: "spring", stiffness: 70, damping: 24 } }
+        }
       >
         {stars.map((star) => (
           <motion.div
@@ -663,27 +691,35 @@ export function UniverseMap2D({
               opacity: star.opacity,
               boxShadow: `0 0 ${star.glow}px rgba(255,255,255,0.32)`,
             }}
-            animate={{
-              opacity: [star.opacity * 0.55, star.opacity, star.opacity * 0.55],
-              scale: [1, 1.18, 1],
-            }}
-            transition={{
-              opacity: {
-                duration: 3 + star.depth * 6,
-                repeat: prefersReducedMotion ? 0 : Number.POSITIVE_INFINITY,
-                ease: "easeInOut",
-              },
-              scale: {
-                duration: 3 + star.depth * 5,
-                repeat: prefersReducedMotion ? 0 : Number.POSITIVE_INFINITY,
-                ease: "easeInOut",
-              },
-            }}
+            animate={
+              reducedSceneMotion
+                ? { opacity: star.opacity, scale: 1 }
+                : {
+                    opacity: [star.opacity * 0.55, star.opacity, star.opacity * 0.55],
+                    scale: [1, 1.18, 1],
+                  }
+            }
+            transition={
+              reducedSceneMotion
+                ? { duration: 0.18, ease: "linear" }
+                : {
+                    opacity: {
+                      duration: 3 + star.depth * 6,
+                      repeat: Number.POSITIVE_INFINITY,
+                      ease: "easeInOut",
+                    },
+                    scale: {
+                      duration: 3 + star.depth * 5,
+                      repeat: Number.POSITIVE_INFINITY,
+                      ease: "easeInOut",
+                    },
+                  }
+            }
           />
         ))}
       </motion.div>
       <AnimatePresence>
-        {transitionOrigin ? (
+        {transitionOrigin && !reducedSceneMotion ? (
           <motion.div
             key={`${transitionOrigin.label}-${transitionPulse}`}
             className="pointer-events-none absolute inset-0 z-[18]"
@@ -854,30 +890,38 @@ export function UniverseMap2D({
             width: BOARD_WIDTH,
             height: BOARD_HEIGHT,
           }}
-          initial={{ opacity: 0, scale: 0.98 }}
+          initial={reducedSceneMotion ? false : { opacity: 0, scale: 0.98 }}
           animate={{
             opacity: 1,
             scale: zoom,
             x: dragOffset.x,
             y: dragOffset.y,
             filter: transitionOrigin
-              ? "blur(1.6px) saturate(0.84) brightness(0.92)"
+              ? reducedSceneMotion
+                ? "none"
+                : "blur(1.6px) saturate(0.84) brightness(0.92)"
               : "blur(0px) saturate(1) brightness(1)",
           }}
           transition={{
-            opacity: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
-            scale: prefersReducedMotion
+            opacity: reducedSceneMotion ? { duration: 0 } : { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
+            scale: reducedSceneMotion
+              ? { duration: 0 }
+              : prefersReducedMotion
               ? { duration: 0.2, ease: "linear" }
               : { type: "spring", stiffness: 120, damping: 24, mass: 0.7 },
-            x:
+            x: reducedSceneMotion
+              ? { duration: 0 }
+              :
               panMotionMode === "direct"
                 ? { duration: 0.12, ease: premiumEase }
                 : { type: "spring", stiffness: 120, damping: 24, mass: 0.6 },
-            y:
+            y: reducedSceneMotion
+              ? { duration: 0 }
+              :
               panMotionMode === "direct"
                 ? { duration: 0.12, ease: premiumEase }
                 : { type: "spring", stiffness: 120, damping: 24, mass: 0.6 },
-            filter: { duration: 0.26, ease: premiumEase },
+            filter: reducedSceneMotion ? { duration: 0 } : { duration: 0.26, ease: premiumEase },
           }}
         >
         <svg className="pointer-events-none absolute inset-0 h-full w-full">
@@ -995,6 +1039,7 @@ export function UniverseMap2D({
                 galaxy={item}
                 point={galaxyPoints[index]}
                 introOrigin={transitionOrigin?.point ?? null}
+                reducedMotion={reducedSceneMotion}
                 onSelect={() =>
                   beginSelectionTransition({
                     point: galaxyPoints[index],
@@ -1033,6 +1078,7 @@ export function UniverseMap2D({
                   accent={galaxy.accent}
                   point={objectivePoints[index]}
                   introOrigin={transitionOrigin?.point ?? null}
+                  reducedMotion={reducedSceneMotion}
                   onSelect={() =>
                     beginSelectionTransition({
                       point: objectivePoints[index],
@@ -1059,6 +1105,7 @@ export function UniverseMap2D({
               objective={objective}
               point={sceneCenter}
               introOrigin={transitionOrigin?.point ?? null}
+              reducedMotion={reducedSceneMotion}
             />
             <motion.div animate={{ opacity: 0.78 }} transition={{ duration: 0.26, ease: premiumEase }}>
               {(objective.habits ?? []).map((habit, index) => (
@@ -1068,6 +1115,7 @@ export function UniverseMap2D({
                   point={habitPoints[index]}
                   introOrigin={transitionOrigin?.point ?? null}
                   selected={selectedHabitId === habit.id}
+                  reducedMotion={reducedSceneMotion}
                   onSelect={() => setSelectedHabitId(habit.id)}
                 />
               ))}
@@ -1079,6 +1127,7 @@ export function UniverseMap2D({
                   task={item}
                   point={taskPoints[index]}
                   introOrigin={transitionOrigin?.point ?? null}
+                  reducedMotion={reducedSceneMotion}
                   onSelect={() =>
                     beginSelectionTransition({
                       point: taskPoints[index],
@@ -1107,6 +1156,7 @@ export function UniverseMap2D({
                 point={{ x: sceneCenter.x - 260, y: sceneCenter.y }}
                 compact
                 introOrigin={transitionOrigin?.point ?? null}
+                reducedMotion={reducedSceneMotion}
               />
               {(objective.habits ?? []).map((habit, index) => (
                 <HabitMarker2D
@@ -1115,6 +1165,7 @@ export function UniverseMap2D({
                   point={taskHabitPoints[index]}
                   introOrigin={transitionOrigin?.point ?? null}
                   selected={selectedHabitId === habit.id}
+                  reducedMotion={reducedSceneMotion}
                   onSelect={() => setSelectedHabitId(habit.id)}
                 />
               ))}
@@ -1123,6 +1174,7 @@ export function UniverseMap2D({
               task={task}
               point={{ x: sceneCenter.x + 240, y: sceneCenter.y }}
               introOrigin={transitionOrigin?.point ?? null}
+              reducedMotion={reducedSceneMotion}
               onSelect={() => selectTask(task.id)}
             />
             {task.subtasks.map((item, index) => (
@@ -1132,6 +1184,7 @@ export function UniverseMap2D({
                 selected={selectedSubtaskId === item.id}
                 point={subtaskPoints[index]}
                 introOrigin={transitionOrigin?.point ?? null}
+                reducedMotion={reducedSceneMotion}
                 onSelect={() =>
                   beginSelectionTransition({
                     point: subtaskPoints[index],
@@ -1327,11 +1380,13 @@ function GalaxyCard({
   galaxy,
   point,
   introOrigin,
+  reducedMotion = false,
   onSelect,
 }: {
   galaxy: UniverseData["galaxies"][number];
   point: Point;
   introOrigin?: Point | null;
+  reducedMotion?: boolean;
   onSelect: () => void;
 }) {
   const delay = entranceDelay(point, introOrigin ?? null);
@@ -1345,15 +1400,17 @@ function GalaxyCard({
       className="absolute w-[188px] -translate-x-1/2 -translate-y-1/2 rounded-[24px] border border-white/10 bg-slate-950/70 p-16 text-left shadow-[0_20px_80px_rgba(2,6,23,0.32)] backdrop-blur-2xl transition hover:border-white/18 hover:bg-slate-950/78"
       style={{ left: point.x, top: point.y }}
       initial={{ opacity: 0, scale: 0.94, y: 10 }}
-      animate={{ opacity: 1, scale: 1, y: [0, -4, 0] }}
+      animate={reducedMotion ? { opacity: 1, scale: 1, y: 0 } : { opacity: 1, scale: 1, y: [0, -4, 0] }}
       transition={{
         opacity: { duration: 0.4, delay, ease: [0.22, 1, 0.36, 1] },
         scale: { duration: 0.4, delay, ease: [0.22, 1, 0.36, 1] },
-        y: {
-          duration: 5.2 + (point.x % 7) * 0.18,
-          repeat: Number.POSITIVE_INFINITY,
-          ease: "easeInOut",
-        },
+        y: reducedMotion
+          ? { duration: 0.2, ease: "linear" }
+          : {
+              duration: 5.2 + (point.x % 7) * 0.18,
+              repeat: Number.POSITIVE_INFINITY,
+              ease: "easeInOut",
+            },
       }}
       whileHover={{ y: -4, scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
@@ -1385,12 +1442,14 @@ function ObjectiveCard2D({
   accent,
   point,
   introOrigin,
+  reducedMotion = false,
   onSelect,
 }: {
   objective: ObjectiveNode;
   accent: string;
   point: Point;
   introOrigin?: Point | null;
+  reducedMotion?: boolean;
   onSelect: () => void;
 }) {
   const delay = entranceDelay(point, introOrigin ?? null);
@@ -1404,15 +1463,17 @@ function ObjectiveCard2D({
       className="absolute w-[180px] -translate-x-1/2 -translate-y-1/2 rounded-[24px] border border-white/10 bg-slate-950/70 p-16 text-left shadow-[0_18px_70px_rgba(2,6,23,0.32)] backdrop-blur-2xl transition hover:border-amber-200/28 hover:bg-slate-950/78"
       style={{ left: point.x, top: point.y }}
       initial={{ opacity: 0, scale: 0.94, y: 10 }}
-      animate={{ opacity: 1, scale: 1, y: [0, -3, 0] }}
+      animate={reducedMotion ? { opacity: 1, scale: 1, y: 0 } : { opacity: 1, scale: 1, y: [0, -3, 0] }}
       transition={{
         opacity: { duration: 0.42, delay, ease: [0.22, 1, 0.36, 1] },
         scale: { duration: 0.42, delay, ease: [0.22, 1, 0.36, 1] },
-        y: {
-          duration: 4.6 + (point.y % 5) * 0.24,
-          repeat: Number.POSITIVE_INFINITY,
-          ease: "easeInOut",
-        },
+        y: reducedMotion
+          ? { duration: 0.2, ease: "linear" }
+          : {
+              duration: 4.6 + (point.y % 5) * 0.24,
+              repeat: Number.POSITIVE_INFINITY,
+              ease: "easeInOut",
+            },
       }}
       whileHover={{ y: -4, scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
@@ -1447,11 +1508,13 @@ function ObjectiveSun2D({
   point,
   compact = false,
   introOrigin,
+  reducedMotion = false,
 }: {
   objective: ObjectiveNode;
   point: Point;
   compact?: boolean;
   introOrigin?: Point | null;
+  reducedMotion?: boolean;
 }) {
   const size = compact ? 164 : 228;
   const delay = entranceDelay(point, introOrigin ?? null);
@@ -1469,8 +1532,12 @@ function ObjectiveSun2D({
       <motion.div
         className="relative rounded-full"
         style={{ width: size, height: size }}
-        animate={{ scale: [1, 1.02, 1] }}
-        transition={{ duration: 4.8, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+        animate={reducedMotion ? { scale: 1 } : { scale: [1, 1.02, 1] }}
+        transition={
+          reducedMotion
+            ? { duration: 0.2, ease: "linear" }
+            : { duration: 4.8, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }
+        }
       >
         <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle,#fef3c7_0%,#fbbf24_38%,rgba(251,191,36,0.12)_72%,transparent_100%)]" />
         <div className="absolute inset-[12px] rounded-full border border-amber-100/16" />
@@ -1491,11 +1558,13 @@ function TaskNode2D({
   task,
   point,
   introOrigin,
+  reducedMotion = false,
   onSelect,
 }: {
   task: TaskNode;
   point: Point;
   introOrigin?: Point | null;
+  reducedMotion?: boolean;
   onSelect: () => void;
 }) {
   const visual = stateVisuals(task.state);
@@ -1510,15 +1579,17 @@ function TaskNode2D({
       className="absolute w-[156px] -translate-x-1/2 -translate-y-1/2 rounded-[22px] border border-white/10 bg-slate-950/72 p-12 text-left shadow-[0_16px_60px_rgba(2,6,23,0.28)] backdrop-blur-xl transition hover:border-white/18 hover:bg-slate-950/80"
       style={{ left: point.x, top: point.y }}
       initial={{ opacity: 0, scale: 0.94, y: 10 }}
-      animate={{ opacity: 1, scale: 1, y: [0, -2, 0] }}
+      animate={reducedMotion ? { opacity: 1, scale: 1, y: 0 } : { opacity: 1, scale: 1, y: [0, -2, 0] }}
       transition={{
         opacity: { duration: 0.42, delay, ease: [0.22, 1, 0.36, 1] },
         scale: { duration: 0.42, delay, ease: [0.22, 1, 0.36, 1] },
-        y: {
-          duration: 4.1 + (point.x % 9) * 0.16,
-          repeat: Number.POSITIVE_INFINITY,
-          ease: "easeInOut",
-        },
+        y: reducedMotion
+          ? { duration: 0.2, ease: "linear" }
+          : {
+              duration: 4.1 + (point.x % 9) * 0.16,
+              repeat: Number.POSITIVE_INFINITY,
+              ease: "easeInOut",
+            },
       }}
       whileHover={{ y: -4, scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
@@ -1552,11 +1623,13 @@ function TaskFocus2D({
   task,
   point,
   introOrigin,
+  reducedMotion = false,
   onSelect,
 }: {
   task: TaskNode;
   point: Point;
   introOrigin?: Point | null;
+  reducedMotion?: boolean;
   onSelect: () => void;
 }) {
   const visual = stateVisuals(task.state);
@@ -1573,8 +1646,8 @@ function TaskFocus2D({
       initial={{ opacity: 0, scale: 0.96, x: 12 }}
       animate={{ opacity: 1, scale: 1, x: 0 }}
       transition={{ duration: 0.42, delay, ease: [0.22, 1, 0.36, 1] }}
-      whileHover={{ scale: 1.01, y: -2 }}
-      whileTap={{ scale: 0.99 }}
+      whileHover={reducedMotion ? undefined : { scale: 1.01, y: -2 }}
+      whileTap={reducedMotion ? undefined : { scale: 0.99 }}
     >
       <div className="flex items-center gap-12">
         <div
@@ -1610,12 +1683,14 @@ function HabitMarker2D({
   point,
   introOrigin,
   selected,
+  reducedMotion = false,
   onSelect,
 }: {
   habit: HabitNode;
   point: Point;
   introOrigin?: Point | null;
   selected: boolean;
+  reducedMotion?: boolean;
   onSelect: () => void;
 }) {
   const delay = entranceDelay(point, introOrigin ?? null);
@@ -1633,10 +1708,16 @@ function HabitMarker2D({
       }`}
       style={{ left: point.x, top: point.y }}
       initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: selected ? [1.04, 1.08, 1.04] : [1, 1.03, 1] }}
+      animate={
+        reducedMotion
+          ? { opacity: 1, scale: selected ? 1.04 : 1 }
+          : { opacity: 1, scale: selected ? [1.04, 1.08, 1.04] : [1, 1.03, 1] }
+      }
       transition={{
         opacity: { duration: 0.35, delay, ease: [0.22, 1, 0.36, 1] },
-        scale: { duration: 3.2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" },
+        scale: reducedMotion
+          ? { duration: 0.2, ease: "linear" }
+          : { duration: 3.2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" },
       }}
       whileHover={{ scale: 1.04, y: -2 }}
       whileTap={{ scale: 0.98 }}
@@ -1688,12 +1769,14 @@ function SubtaskNode2D({
   selected,
   point,
   introOrigin,
+  reducedMotion = false,
   onSelect,
 }: {
   subtask: TaskNode["subtasks"][number];
   selected: boolean;
   point: Point;
   introOrigin?: Point | null;
+  reducedMotion?: boolean;
   onSelect: () => void;
 }) {
   const delay = entranceDelay(point, introOrigin ?? null);
@@ -1710,15 +1793,21 @@ function SubtaskNode2D({
       }`}
       style={{ left: point.x, top: point.y }}
       initial={{ opacity: 0, scale: 0.92, y: 8 }}
-      animate={{ opacity: 1, scale: selected ? 1.02 : 1, y: selected ? [0, -3, 0] : [0, -2, 0] }}
+      animate={
+        reducedMotion
+          ? { opacity: 1, scale: selected ? 1.02 : 1, y: 0 }
+          : { opacity: 1, scale: selected ? 1.02 : 1, y: selected ? [0, -3, 0] : [0, -2, 0] }
+      }
       transition={{
         opacity: { duration: 0.38, delay, ease: [0.22, 1, 0.36, 1] },
         scale: { duration: 0.38, delay, ease: [0.22, 1, 0.36, 1] },
-        y: {
-          duration: 3.8 + (point.y % 7) * 0.14,
-          repeat: Number.POSITIVE_INFINITY,
-          ease: "easeInOut",
-        },
+        y: reducedMotion
+          ? { duration: 0.2, ease: "linear" }
+          : {
+              duration: 3.8 + (point.y % 7) * 0.14,
+              repeat: Number.POSITIVE_INFINITY,
+              ease: "easeInOut",
+            },
       }}
       whileHover={{ y: -3, scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
