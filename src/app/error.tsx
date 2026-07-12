@@ -2,35 +2,17 @@
 
 import { RefreshCw } from "lucide-react";
 
-import { AppShell } from "@/components/layout/app-shell";
-import { Button } from "@/components/ui/button";
-
-export default function Error({
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
+export default function Error({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
-    <AppShell>
-      <section className="surface-card flex min-h-[60vh] flex-col items-start justify-center gap-24 rounded-[32px] border border-danger/20 p-24 md:p-32">
-        <div className="inline-flex items-center gap-8 rounded-full border border-danger/25 bg-danger/10 px-12 py-8 text-sm text-danger">
-          System incident
-        </div>
-        <div className="grid max-w-2xl gap-12">
-          <h1 className="text-balance text-4xl leading-[1.02] font-semibold tracking-[-0.04em] text-foreground md:text-6xl">
-            The Orbyte command layer hit an unexpected fault.
-          </h1>
-          <p className="max-w-xl text-base leading-[1.65] text-muted-strong md:text-lg md:leading-[1.7]">
-            The dashboard failed to render. Retry the route to restore the live
-            operational surface.
-          </p>
-        </div>
-        <Button onClick={reset}>
-          <RefreshCw className="size-16" aria-hidden="true" />
-          Retry render
-        </Button>
+    <main className="grid min-h-screen place-items-center bg-[#020617] p-20 text-white">
+      <section className="max-w-md rounded-[28px] border border-white/10 bg-slate-950/70 p-24 text-center shadow-2xl">
+        <p className="text-xs uppercase tracking-[0.18em] text-rose-300">Algo salió mal</p>
+        <h1 className="mt-10 text-3xl font-semibold tracking-[-0.04em]">No pudimos abrir tu universo.</h1>
+        <p className="mt-10 text-sm leading-[1.7] text-slate-400">Tus datos siguen guardados en este navegador. Intenta cargar la vista nuevamente.</p>
+        <button type="button" onClick={reset} className="mt-16 inline-flex items-center gap-8 rounded-full bg-white px-14 py-9 text-sm font-medium text-slate-950 transition hover:bg-sky-100">
+          <RefreshCw className="size-15" /> Reintentar
+        </button>
       </section>
-    </AppShell>
+    </main>
   );
 }

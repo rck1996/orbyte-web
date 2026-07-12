@@ -1,185 +1,75 @@
 # Orbyte
 
-Orbyte is a cinematic spatial productivity system built as a navigable universe.
+Orbyte organiza categorías, objetivos, tareas, subtareas y hábitos como un universo visual 2D.
+Es una aplicación local-first: no requiere cuenta, servidor de datos ni conexión permanente.
 
-Version `1.0.0` ships the new primary 2D canvas experience:
-- `Galaxy` = category
-- `Objective` = solar system / sun
-- `Task` = planet
-- `Subtask` = satellite
-- `Habit` = orbital rhythm around an objective
-
-The 3D prototype is still available as a legacy route, but the 2D experience is now the main product direction.
-
-## Stack
-
-- Next.js 16 App Router
-- React 19
-- TypeScript
-- Tailwind CSS v4
-- Framer Motion
-- Three.js
-- React Three Fiber
-- Drei
-- Zustand
-
-## Run Locally
-
-From `C:\Users\erick\Documents\orbyte`:
+## Inicio rápido
 
 ```powershell
 npm install
 npm run dev
 ```
 
-Open:
+Abre `http://localhost:3000`.
 
-```text
-http://localhost:3000
-```
-
-Production build:
+Validación completa:
 
 ```powershell
+npm test
+npm run lint
 npm run build
-npm run start
 ```
 
-## Main Routes
+## Flujo del producto
 
-- `/`
-  Main Orbyte 2D universe experience.
-- `/three`
-  Legacy 3D prototype route.
+1. Crea una categoría o elige una plantilla.
+2. Dentro de la categoría, crea un objetivo.
+3. Divide el objetivo en tareas y subtareas.
+4. Añade hábitos únicamente cuando representen comportamiento recurrente.
 
-## API Routes
+La navegación principal sigue ese mismo orden y ofrece tres superficies:
 
-- `GET /api/universe`
-  Returns the mapped universe used by the visual experience.
-- `GET /api/workspace`
-  Returns the editable workspace domain.
-- `GET/POST /api/categories`
-- `GET/PATCH/DELETE /api/categories/:categoryId`
-- `GET/POST /api/objectives`
-- `GET/PATCH/DELETE /api/objectives/:objectiveId`
-- `GET/POST /api/tasks`
-- `GET/PATCH/DELETE /api/tasks/:taskId`
-- `GET/POST /api/subtasks`
-- `GET/PATCH/DELETE /api/subtasks/:subtaskId`
-- `GET/POST /api/habits`
-- `GET/PATCH/DELETE /api/habits/:habitId`
-- `GET /api/dashboard`
-  Legacy flat dashboard endpoint kept for backward compatibility.
+- **Explorar:** contexto, progreso y navegación entre niveles.
+- **Hábitos:** creación, check-ins e historial reciente.
+- **Editar:** cambios estructurales y plantillas.
 
-## Product Model
+## Datos y privacidad
 
-The current hierarchy is:
+El workspace se guarda en `localStorage` con la clave `orbyte.workspace.v1`.
+El primer inicio está vacío y las plantillas solo se aplican cuando el usuario las elige.
+Los datos permanecen en el navegador y no se sincronizan entre dispositivos.
 
-- `Category`
-- `Objective`
-- `Task`
-- `Subtask`
-- `Habit`
+## Stack esencial
 
-Important distinction:
+- Next.js 16 y React 19
+- TypeScript
+- Tailwind CSS 4
+- Framer Motion
+- Zustand
+- Vitest
 
-- `Task` and `Subtask` represent discrete work.
-- `Habit` represents recurring behavior that contributes to objective progress.
-
-Objective progress is currently derived from tasks plus linked habits, then mapped into the visual universe.
-
-## Current Experience
-
-### 2D universe
-
-The main route now includes:
-
-- professional 2D canvas navigation
-- click to select
-- drag on empty space to pan
-- `space + drag` and right-drag for universal pan
-- wheel zoom
-- `Fit` action by level
-- minimap on desktop
-- mobile bottom sheet navigation
-- contextual detail panels
-- task and subtask focus modals
-- habit focus modal with quick check-in actions
-
-### 3D route
-
-The 3D version remains available at `/three` as a preserved prototype and reference implementation.
-
-## Data And Persistence
-
-The app no longer depends only on a visual mock. It now has a file-backed editable workspace domain:
-
-- `src/lib/server/universe-db.ts`
-- `src/lib/server/universe-repository.ts`
-- `src/lib/server/universe-service.ts`
-- `src/lib/server/universe-mappers.ts`
-- `src/data/universe-db.json`
-
-This means CRUD already exists at the application level, even though the persistence layer is still local JSON rather than a database.
-
-## Project Structure
+## Estructura
 
 ```text
 src/
-  app/
-    api/
-    three/
+  app/                         # única ruta pública
   components/
-    galaxy/
-    overlays/
-    planets/
-    solar-system/
-    universe-2d/
-    ui/
-  data/
+    overlays/                  # navegación, edición y modales
+    universe-2d/               # canvas visual
   lib/
-    server/
-  scene/
-  store/
-  systems/
-  types/
+    browser/                   # persistencia y plantillas
+    universe-mappers.ts        # dominio -> modelo visual
+  scene/                       # composición de la experiencia
+  store/                       # estado de interacción
+  types/                       # dominio y vista del universo
 ```
 
-## Key Files
+Consulta [docs/architecture.md](./docs/architecture.md) para las decisiones técnicas.
 
-- `src/app/page.tsx`
-  Main 2D entry route.
-- `src/app/three/page.tsx`
-  Legacy 3D route.
-- `src/scene/orbyte-experience-2d.tsx`
-  2D shell and refresh orchestration.
-- `src/components/universe-2d/universe-map-2d.tsx`
-  Main 2D canvas, pan/zoom, transitions, minimap, habits, and node interactions.
-- `src/components/overlays/universe-hud.tsx`
-  Sidebar / mobile sheet navigation container.
-- `src/components/overlays/task-focus-modal.tsx`
-  Task and subtask operational modal.
-- `src/components/overlays/habit-focus-modal.tsx`
-  Habit modal with check-in flow.
+## Límites actuales
 
-## Current Limitations
+- Los datos pueden perderse si se limpia el almacenamiento del navegador.
+- No existe sincronización, autenticación ni colaboración multiusuario.
+- Las pruebas cubren persistencia crítica, pero aún no hay pruebas E2E.
 
-- persistence is local JSON, not a database
-- no authentication yet
-- no multi-user collaboration yet
-- the 3D route is still heavier and experimental compared to the 2D experience
-
-## Next Release Direction
-
-The next major phase after `1.0.0` should be:
-
-1. move from file-backed persistence to Prisma + PostgreSQL
-2. deploy publicly
-3. add authentication and workspaces
-4. improve analytics and habit history
-5. continue polishing mobile interaction and canvas performance
-
-## Extra Documentation
-
-- [Architecture Guide](./docs/architecture.md)
-- [Backend and CRUD Plan](./docs/backend-crud-plan.md)
+No existe ruta 3D ni backend heredado: el producto mantiene una única experiencia 2D.

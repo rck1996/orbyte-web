@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { motion } from "framer-motion";
 import { Check, Flame, Link2, LoaderCircle, Minus, Plus, Trash2 } from "lucide-react";
+import { localWorkspaceRequest } from "@/lib/browser/workspace-storage";
 
 import type { Habit, HabitCadence, WorkspaceDomain } from "@/types/domain";
 
@@ -19,24 +20,7 @@ type HabitCard = {
 };
 
 async function request(path: string, init?: RequestInit) {
-  const response = await fetch(path, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-  });
-
-  if (!response.ok) {
-    const error = (await response.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(error?.error ?? "Request failed.");
-  }
-
-  if (response.status === 204) {
-    return null;
-  }
-
-  return response.json();
+  return localWorkspaceRequest(path, init);
 }
 
 const cadenceOptions: HabitCadence[] = ["daily", "weekly", "monthly"];
@@ -51,7 +35,7 @@ export function HabitsPanel({
   const [error, setError] = useState<string | null>(null);
   const [habitName, setHabitName] = useState("");
   const [habitTarget, setHabitTarget] = useState("5");
-  const [habitMetricLabel, setHabitMetricLabel] = useState("sessions / week");
+  const [habitMetricLabel, setHabitMetricLabel] = useState("sesiones / semana");
   const [habitCadence, setHabitCadence] = useState<HabitCadence>("daily");
 
   const selectedCategory =
@@ -93,7 +77,7 @@ export function HabitsPanel({
 
     return workspace.habits.map((habit) => ({
       habit,
-      objectiveName: objectiveNames.get(habit.linkedObjectiveIds[0] ?? "") ?? "Unlinked",
+      objectiveName: objectiveNames.get(habit.linkedObjectiveIds[0] ?? "") ?? "Sin objetivo",
     }));
   }, [selectedCategory, selectedObjective, workspace]);
 
@@ -107,20 +91,20 @@ export function HabitsPanel({
     : 0;
 
   const panelTitle = selectedObjective
-    ? `${selectedObjective.name} habits`
+    ? `Hábitos de ${selectedObjective.name}`
     : selectedCategory
-      ? `${selectedCategory.name} habits`
-      : "Habit systems";
+      ? `Hábitos de ${selectedCategory.name}`
+      : "Todos los hábitos";
   const panelDescription = selectedObjective
-    ? "Repeated actions that reinforce the selected objective."
+    ? "Acciones recurrentes que refuerzan el objetivo seleccionado."
     : selectedCategory
-      ? "Cadences attached to the current galaxy's objectives."
-      : "Cross-system rhythms that influence your long-term progress.";
+      ? "Ritmos vinculados a los objetivos de esta categoría."
+      : "Comportamientos recurrentes que aportan a tu progreso.";
 
   function run(action: () => Promise<void>) {
     startTransition(() => {
       void action().catch((issue: unknown) => {
-        setError(issue instanceof Error ? issue.message : "Unexpected error.");
+        setError(issue instanceof Error ? issue.message : "No pudimos completar el cambio.");
       });
     });
   }
@@ -135,7 +119,7 @@ export function HabitsPanel({
       <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-r from-cyan-300/14 via-sky-300/10 to-transparent" />
       <div className="flex items-start justify-between gap-12 border-b border-white/8 pb-8">
         <div className="min-w-0">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-cyan-200/70">Habit belt</p>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-cyan-200/70">Ritmos recurrentes</p>
           <p className="mt-4 text-sm text-slate-200">{panelTitle}</p>
           <p className="mt-4 text-xs leading-[1.6] text-slate-400">{panelDescription}</p>
         </div>
@@ -148,19 +132,19 @@ export function HabitsPanel({
       >
         <section className="grid gap-8 rounded-[18px] border border-white/8 bg-white/[0.03] p-12">
           <div className="grid grid-cols-3 gap-8">
-            <StatChip label="Visible" value={`${visibleHabits.length}`} />
-            <StatChip label="Avg" value={`${averageProgress}%`} />
-            <StatChip label="Streak" value={`${topStreak}d`} />
+            <StatChip label="Hábitos" value={`${visibleHabits.length}`} />
+            <StatChip label="Promedio" value={`${averageProgress}%`} />
+            <StatChip label="Racha" value={`${topStreak}d`} />
           </div>
         </section>
 
         {selectedObjective ? (
           <section className="grid gap-8 rounded-[18px] border border-cyan-300/10 bg-cyan-400/[0.03] p-12">
-            <p className="text-[10px] uppercase tracking-[0.16em] text-cyan-200/70">Create habit</p>
+            <p className="text-[10px] uppercase tracking-[0.16em] text-cyan-200/70">Crear hábito</p>
             <input
               value={habitName}
               onChange={(event) => setHabitName(event.target.value)}
-              placeholder="Sleep protocol, daily review, inbox zero"
+              placeholder="Ej: caminar, revisar prioridades"
               className="rounded-[14px] border border-white/10 bg-slate-950/70 px-10 py-8 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/30"
             />
             <div className="grid grid-cols-2 gap-8">
@@ -168,13 +152,13 @@ export function HabitsPanel({
                 value={habitTarget}
                 onChange={(event) => setHabitTarget(event.target.value)}
                 inputMode="numeric"
-                placeholder="Target"
+                placeholder="Meta"
                 className="rounded-[14px] border border-white/10 bg-slate-950/70 px-10 py-8 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/30"
               />
               <input
                 value={habitMetricLabel}
                 onChange={(event) => setHabitMetricLabel(event.target.value)}
-                placeholder="sessions / week"
+                placeholder="sesiones / semana"
                 className="rounded-[14px] border border-white/10 bg-slate-950/70 px-10 py-8 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/30"
               />
             </div>
@@ -190,7 +174,7 @@ export function HabitsPanel({
                       : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]"
                   }`}
                 >
-                  {cadence}
+                  {{ daily: "Diario", weekly: "Semanal", monthly: "Mensual" }[cadence]}
                 </button>
               ))}
             </div>
@@ -204,7 +188,7 @@ export function HabitsPanel({
                     method: "POST",
                     body: JSON.stringify({
                       name: habitName,
-                      description: `${habitName} habit`,
+                      description: `Ritmo recurrente: ${habitName}.`,
                       cadence: habitCadence,
                       target: Number(habitTarget) || 1,
                       completedCount: 0,
@@ -215,21 +199,21 @@ export function HabitsPanel({
                   });
                   setHabitName("");
                   setHabitTarget("5");
-                  setHabitMetricLabel("sessions / week");
+                  setHabitMetricLabel("sesiones / semana");
                   await onRefreshData();
                 })
               }
               className="inline-flex items-center justify-center gap-6 rounded-[14px] border border-cyan-300/20 bg-cyan-400/10 px-10 py-8 text-xs text-cyan-50 transition hover:bg-cyan-400/16 disabled:opacity-40"
             >
               <Plus className="size-14" />
-              Add to objective
+              Añadir al objetivo
             </button>
           </section>
         ) : (
           <section className="rounded-[18px] border border-white/8 bg-white/[0.03] p-12">
             <p className="text-sm leading-[1.6] text-slate-300">
-              Select an objective to create habits directly into its orbit. Without an objective
-              focus, this panel stays in observation mode.
+              Selecciona un objetivo para crear hábitos vinculados. Mientras tanto puedes revisar
+              los hábitos existentes en este alcance.
             </p>
           </section>
         )}
@@ -251,19 +235,20 @@ export function HabitsPanel({
                     await onRefreshData();
                   })
                 }
-                onDelete={() =>
+                onDelete={() => {
+                  if (!window.confirm("¿Eliminar este hábito y su historial?")) return;
                   run(async () => {
                     setError(null);
                     await request(`/api/habits/${habit.id}`, { method: "DELETE" });
                     await onRefreshData();
-                  })
-                }
+                  });
+                }}
               />
             ))}
           </div>
         ) : (
           <section className="rounded-[18px] border border-dashed border-white/10 bg-white/[0.02] p-12">
-            <p className="text-sm text-slate-300">No habits are linked to this scope yet.</p>
+            <p className="text-sm text-slate-300">Aún no hay hábitos vinculados a este alcance.</p>
           </section>
         )}
 
@@ -325,7 +310,7 @@ function HabitCard({
           className="inline-flex items-center gap-6 rounded-full border border-rose-400/20 bg-rose-500/10 px-8 py-6 text-xs text-rose-200 transition hover:bg-rose-500/16"
         >
           <Trash2 className="size-14" />
-          Delete
+          Eliminar
         </button>
       </div>
 
@@ -340,7 +325,7 @@ function HabitCard({
         </span>
         <span className="inline-flex items-center gap-6">
           <Flame className="size-12" />
-          {habit.streak} day streak
+          {habit.streak} días de racha
         </span>
       </div>
 
@@ -352,7 +337,7 @@ function HabitCard({
       </div>
 
       <div className="mt-10 flex items-center justify-between gap-8">
-        <p className="text-xs uppercase tracking-[0.14em] text-cyan-100/80">{progress}% on target</p>
+        <p className="text-xs uppercase tracking-[0.14em] text-cyan-100/80">{progress}% de la meta</p>
         <div className="flex items-center gap-8">
           <button
             type="button"

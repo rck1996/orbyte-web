@@ -50,6 +50,14 @@ export type Habit = {
   streak: number;
   metricLabel: string;
   linkedObjectiveIds: string[];
+  history?: HabitHistoryEntry[];
+};
+
+export type HabitHistoryEntry = {
+  id: string;
+  date: string;
+  delta: number;
+  completedCount: number;
 };
 
 export type WorkspaceDomain = {

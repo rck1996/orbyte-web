@@ -3,6 +3,8 @@
 import { useState, useTransition, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { LoaderCircle, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { applyWorkspaceTemplate, localWorkspaceRequest } from "@/lib/browser/workspace-storage";
+import { workspaceTemplates } from "@/lib/browser/workspace-templates";
 
 import type { WorkspaceDomain } from "@/types/domain";
 import type { UniverseData } from "@/types/universe";
@@ -18,24 +20,7 @@ type Props = {
 };
 
 async function request(path: string, init?: RequestInit) {
-  const response = await fetch(path, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-  });
-
-  if (!response.ok) {
-    const error = (await response.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(error?.error ?? "Request failed.");
-  }
-
-  if (response.status === 204) {
-    return null;
-  }
-
-  return response.json();
+  return localWorkspaceRequest(path, init);
 }
 
 export function ManagementPanel({
@@ -84,8 +69,8 @@ export function ManagementPanel({
       <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-r from-violet-300/14 via-slate-200/6 to-transparent" />
       <div className="flex items-center justify-between gap-12 border-b border-white/8 pb-8">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Control deck</p>
-          <p className="mt-4 text-sm text-slate-300">Structure editor for categories, objectives, tasks, and subtasks</p>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Estructura</p>
+          <p className="mt-4 text-sm text-slate-300">Edita categorías, objetivos, tareas y subtareas.</p>
         </div>
         <button
           type="button"
@@ -93,20 +78,36 @@ export function ManagementPanel({
           className="inline-flex items-center gap-6 rounded-full border border-white/10 bg-white/[0.04] px-10 py-6 text-xs text-slate-200 transition hover:bg-white/[0.08]"
         >
           {isPending ? <LoaderCircle className="size-14 animate-spin" /> : <RefreshCw className="size-14" />}
-          Sync
+          Actualizar
         </button>
       </div>
 
       <div className="mt-12 grid max-h-[46vh] gap-12 overflow-y-auto pr-4 md:max-h-[58vh]" style={{ touchAction: "pan-y" }}>
-        <Section title="Categories">
+        <Section title="Plantillas recurrentes">
+          <p className="text-xs leading-[1.6] text-slate-400">Se aplican solo cuando las eliges; el espacio comienza vacío.</p>
+          <div className="grid gap-8">
+            {workspaceTemplates.map((template) => (
+              <button
+                key={template.id}
+                type="button"
+                onClick={() => run(async () => { setError(null); applyWorkspaceTemplate(template.id); await refreshAll(); })}
+                className="rounded-[14px] border border-white/10 bg-white/[0.04] px-10 py-8 text-left transition hover:bg-white/[0.08]"
+              >
+                <span className="block text-sm text-white">{template.name}</span>
+                <span className="mt-4 block text-xs leading-[1.5] text-slate-400">{template.description}</span>
+              </button>
+            ))}
+          </div>
+        </Section>
+        <Section title="Categorías">
           <p className="text-xs text-slate-400">
-            {universe.stats.liveSystems} live systems in the current render view
+            {universe.stats.liveSystems} en la vista actual
           </p>
           <InlineInput
             value={categoryName}
             onChange={setCategoryName}
-            placeholder="Create category"
-            buttonLabel="Add"
+            placeholder="Nueva categoría"
+            buttonLabel="Crear"
             onSubmit={() =>
               run(async () => {
                 setError(null);
@@ -114,10 +115,10 @@ export function ManagementPanel({
                   method: "POST",
                   body: JSON.stringify({
                     name: categoryName,
-                    category: "Custom",
+                    category: "Personal",
                     color: "#7dd3fc",
                     accent: "#e0f2fe",
-                    description: `${categoryName} system`,
+                    description: `${categoryName} reúne tus objetivos principales.`,
                     position: [0, 0, 0],
                   }),
                 });
@@ -127,16 +128,16 @@ export function ManagementPanel({
             }
           />
           <p className="text-xs text-slate-400">
-            {workspace.categories.length} categories persisted
+            {workspace.categories.length} categorías guardadas
           </p>
         </Section>
 
         {category ? (
-          <Section title="Selected category">
+          <Section title="Categoría seleccionada">
             <EditableCard
               label={category.name}
               description={category.description}
-              meta={`${category.objectives.length} objectives`}
+              meta={`${category.objectives.length} objetivos`}
               onDelete={() =>
                 run(async () => {
                   setError(null);
@@ -166,8 +167,8 @@ export function ManagementPanel({
             <InlineInput
               value={objectiveName}
               onChange={setObjectiveName}
-              placeholder="Create objective"
-              buttonLabel="Add"
+              placeholder="Nuevo objetivo"
+              buttonLabel="Crear"
               onSubmit={() =>
                 run(async () => {
                   setError(null);
@@ -176,7 +177,7 @@ export function ManagementPanel({
                     body: JSON.stringify({
                       categoryId: category.id,
                       name: objectiveName,
-                      description: `${objectiveName} objective`,
+                      description: `Resultado que quieres alcanzar: ${objectiveName}.`,
                       orbitRadius: 4 + category.objectives.length * 1.4,
                       habitIds: [],
                     }),
@@ -190,11 +191,11 @@ export function ManagementPanel({
         ) : null}
 
         {objective ? (
-          <Section title="Selected objective">
+          <Section title="Objetivo seleccionado">
             <EditableCard
               label={objective.name}
               description={objective.description}
-              meta={`${objective.tasks.length} tasks`}
+              meta={`${objective.tasks.length} tareas`}
               onDelete={() =>
                 run(async () => {
                   setError(null);
@@ -224,8 +225,8 @@ export function ManagementPanel({
             <InlineInput
               value={taskName}
               onChange={setTaskName}
-              placeholder="Create task"
-              buttonLabel="Add"
+              placeholder="Nueva tarea"
+              buttonLabel="Crear"
               onSubmit={() =>
                 run(async () => {
                   setError(null);
@@ -236,8 +237,8 @@ export function ManagementPanel({
                       name: taskName,
                       state: "todo",
                       progress: 0,
-                      dueDate: "Planned",
-                      summary: `${taskName} task`,
+                      dueDate: "Sin fecha",
+                      summary: `Acción necesaria: ${taskName}.`,
                     }),
                   });
                   setTaskName("");
@@ -249,11 +250,11 @@ export function ManagementPanel({
         ) : null}
 
         {task ? (
-          <Section title="Selected task">
+          <Section title="Tarea seleccionada">
             <EditableCard
               label={task.name}
               description={task.summary}
-              meta={`${task.progress}% progress`}
+              meta={`${task.progress}% completado`}
               onDelete={() =>
                 run(async () => {
                   setError(null);
@@ -283,8 +284,8 @@ export function ManagementPanel({
             <InlineInput
               value={subtaskName}
               onChange={setSubtaskName}
-              placeholder="Create subtask"
-              buttonLabel="Add"
+              placeholder="Nueva subtarea"
+              buttonLabel="Crear"
               onSubmit={() =>
                 run(async () => {
                   setError(null);
@@ -294,8 +295,8 @@ export function ManagementPanel({
                       taskId: task.id,
                       name: subtaskName,
                       progress: 0,
-                      dueDate: "Planned",
-                      metadata: `${subtaskName} detail`,
+                      dueDate: "Sin fecha",
+                      metadata: `Paso concreto: ${subtaskName}.`,
                     }),
                   });
                   setSubtaskName("");
@@ -307,11 +308,11 @@ export function ManagementPanel({
         ) : null}
 
         {subtask ? (
-          <Section title="Selected subtask">
+          <Section title="Subtarea seleccionada">
             <EditableCard
               label={subtask.name}
               description={subtask.metadata}
-              meta={`${subtask.progress}% progress`}
+              meta={`${subtask.progress}% completado`}
               onDelete={() =>
                 run(async () => {
                   setError(null);
@@ -341,9 +342,9 @@ export function ManagementPanel({
           </Section>
         ) : null}
 
-        <Section title="Navigation note">
+        <Section title="Cómo navegar">
           <p className="text-sm leading-[1.6] text-slate-300">
-            Drag on empty space to pan the cinematic framing. Habits now live in their own panel so this deck stays focused on structural CRUD.
+            Arrastra el espacio vacío para mover el mapa. Los hábitos están en su propia sección para mantener esta vista enfocada en la estructura.
           </p>
         </Section>
 
@@ -389,13 +390,13 @@ function EditFields({
       <input
         value={labelValue}
         onChange={(event) => setLabelValue(event.target.value)}
-        placeholder="Name"
+        placeholder="Nombre"
         className="rounded-[14px] border border-white/10 bg-slate-950/70 px-10 py-8 text-sm text-white outline-none placeholder:text-slate-500 focus:border-sky-300/30"
       />
       <textarea
         value={descriptionValue}
         onChange={(event) => setDescriptionValue(event.target.value)}
-        placeholder="Description"
+        placeholder="Descripción"
         rows={3}
         className="resize-none rounded-[14px] border border-white/10 bg-slate-950/70 px-10 py-8 text-sm text-white outline-none placeholder:text-slate-500 focus:border-sky-300/30"
       />
@@ -404,7 +405,7 @@ function EditFields({
         onClick={() => onSave(labelValue, descriptionValue)}
         className="rounded-[14px] border border-white/10 bg-white/[0.05] px-10 py-8 text-xs text-slate-100 transition hover:bg-white/[0.09]"
       >
-        Save changes
+        Guardar cambios
       </button>
     </div>
   );
@@ -455,6 +456,7 @@ function EditableCard({
   meta: string;
   onDelete: () => void;
 }) {
+  const [confirming, setConfirming] = useState(false);
   return (
     <div className="rounded-[16px] border border-white/8 bg-white/[0.03] p-10">
       <div className="flex items-start justify-between gap-12">
@@ -464,11 +466,11 @@ function EditableCard({
         </div>
         <button
           type="button"
-          onClick={onDelete}
+          onClick={() => confirming ? onDelete() : setConfirming(true)}
           className="inline-flex items-center gap-6 rounded-full border border-rose-400/20 bg-rose-500/10 px-8 py-6 text-xs text-rose-200 transition hover:bg-rose-500/16"
         >
           <Trash2 className="size-14" />
-          Delete
+          {confirming ? "Confirmar" : "Eliminar"}
         </button>
       </div>
       <p className="mt-8 text-sm leading-[1.6] text-slate-300">{description}</p>

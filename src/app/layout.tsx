@@ -14,9 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Orbyte | Operations Command",
-  description:
-    "Premium SaaS operations dashboard for monitoring growth, workflows, incidents, and revenue.",
+  title: "Orbyte | Tu universo personal",
+  description: "Organiza objetivos, tareas y hábitos en un universo visual privado y local.",
 };
 
 export default function RootLayout({
@@ -26,7 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="es"
       className={`${geistSans.variable} ${geistMono.variable} dark`}
       suppressHydrationWarning
     >

@@ -1,8 +1,5 @@
 import { OrbyteExperience2D } from "@/scene/orbyte-experience-2d";
-import { getUniverseData, getWorkspaceDomain } from "@/lib/server/universe-service";
 
-export default async function Home() {
-  const [universe, workspace] = await Promise.all([getUniverseData(), getWorkspaceDomain()]);
-
-  return <OrbyteExperience2D universe={universe} workspace={workspace} />;
+export default function Home() {
+  return <OrbyteExperience2D />;
 }

@@ -88,7 +88,7 @@ export function GalaxyRail({
                   {item.subtitle}
                 </p>
                 <span className={`text-[10px] transition ${active ? "text-slate-300" : "text-slate-500"}`}>
-                  {active ? "Focused" : "Select"}
+                  {active ? "En foco" : "Abrir"}
                 </span>
               </div>
               <p className={`${condensed ? "mt-6 line-clamp-1 text-xs" : "mt-8 line-clamp-2 text-sm md:line-clamp-none"} leading-[1.5] text-slate-300`}>
@@ -109,7 +109,7 @@ export function GalaxyRail({
 
         {items.length === 0 ? (
           <div className="rounded-[18px] border border-white/8 bg-white/[0.03] px-12 py-10 text-sm text-slate-300">
-            No items available at this level yet.
+            Aún no hay elementos en este nivel.
           </div>
         ) : null}
       </div>

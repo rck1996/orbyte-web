@@ -1,177 +1,76 @@
-# Architecture Guide
+# Arquitectura de Orbyte
 
-## Overview
+## Principio
 
-Orbyte is now split into five main layers:
+Orbyte mantiene una sola dirección de datos:
 
-1. Workspace domain and persistence
-2. Universe mapping
-3. 2D presentation shell
-4. Interaction state
-5. Overlay and modal surfaces
+```text
+localStorage -> WorkspaceDomain -> UniverseData -> interfaz 2D
+```
 
-The 2D universe is the primary product. The 3D route remains in the repo as a preserved prototype.
+`WorkspaceDomain` es la fuente de verdad. `UniverseData` es una vista derivada para el canvas.
+La interfaz nunca persiste coordenadas visuales como datos del producto.
 
-## Layer Breakdown
+## Capas
 
-### 1. Workspace domain and persistence
+### Persistencia local
 
-Files:
+- `src/lib/browser/workspace-storage.ts`
+- `src/lib/browser/workspace-templates.ts`
+- clave: `orbyte.workspace.v1`
 
-- `src/lib/server/universe-db.ts`
-- `src/lib/server/universe-repository.ts`
-- `src/lib/server/universe-service.ts`
-- `src/data/universe-db.json`
+Responsabilidades: lectura, escritura, CRUD, cascadas, historial de hábitos y plantillas opt-in.
+Cada mutación emite `orbyte:workspace-changed`, permitiendo refrescar la experiencia sin red.
+
+### Mapeo visual
+
+- `src/lib/universe-mappers.ts`
 - `src/types/domain.ts`
-
-Responsibility:
-
-- persist editable workspace data
-- expose categories, objectives, tasks, subtasks, and habits
-- handle mutations for CRUD endpoints
-
-Current status:
-
-- file-backed JSON persistence
-- production-shaped service boundary
-- ready to migrate later to Prisma/PostgreSQL
-
-### 2. Universe mapping layer
-
-Files:
-
-- `src/lib/server/universe-mappers.ts`
 - `src/types/universe.ts`
-- `src/app/api/universe/route.ts`
 
-Responsibility:
+Convierte categorías, objetivos, tareas, subtareas y hábitos en nodos visuales. El progreso de
+un objetivo combina tareas (75 %) y hábitos vinculados (25 %).
 
-- convert workspace domain data into the visual universe format
-- derive progress and habit contribution
-- keep the canvas response shape stable even if persistence changes underneath
-
-Important design choice:
-
-The visual universe is a mapped view-model, not the source of truth. The source of truth is the workspace domain.
-
-### 3. 2D presentation shell
-
-Files:
-
-- `src/app/page.tsx`
-- `src/scene/orbyte-experience-2d.tsx`
-- `src/components/universe-2d/universe-map-2d.tsx`
-
-Responsibility:
-
-- render the main universe canvas
-- manage refresh after mutations
-- coordinate cinematic transitions, pan, zoom, fit, and minimap
-
-### 4. Interaction state
-
-Files:
+### Interacción
 
 - `src/store/universe-store.ts`
+- `src/components/universe-2d/universe-map-2d.tsx`
 
-Responsibility:
+Zustand conserva únicamente selección, pan y estado de modales. El canvas gestiona zoom,
+encuadre, minimapa y transiciones; no es una capa de persistencia.
 
-- selected galaxy
-- selected objective
-- selected task
-- selected subtask
-- drag offset
-- task modal open state
-- mobile sheet state
+### Experiencia
 
-This store is intentionally UI-focused. It should not become the persistence layer.
-
-### 5. Overlay and modal surfaces
-
-Files:
-
+- `src/scene/orbyte-experience-2d.tsx`
 - `src/components/overlays/universe-hud.tsx`
-- `src/components/overlays/focus-panel.tsx`
-- `src/components/overlays/galaxy-rail.tsx`
-- `src/components/overlays/habits-panel.tsx`
-- `src/components/overlays/management-panel.tsx`
-- `src/components/overlays/task-focus-modal.tsx`
-- `src/components/overlays/habit-focus-modal.tsx`
+- `src/components/overlays/*-panel.tsx`
+- `src/components/overlays/*-modal.tsx`
 
-Responsibility:
+El onboarding explica la jerarquía. Una vez creado el primer sistema, la navegación se limita a
+Explorar, Hábitos y Editar. El breadcrumb y “volver” siguen la jerarquía natural del dominio.
 
-- contextual navigation
-- details on demand
-- CRUD entry points
-- mobile sheet behavior
-- task/subtask/habit operational surfaces
+## Rendimiento
 
-## 2D Navigation Model
+- única ruta estática `/`
+- sin Three.js, WebGL, APIs ni base de datos en el bundle
+- fondo estelar determinista con 64 nodos y animación en solo una fracción
+- reducción adicional para punteros táctiles y `prefers-reduced-motion`
+- transiciones basadas principalmente en `transform` y `opacity`
 
-The primary canvas follows a standard interaction model:
+## Pruebas
 
-- click/tap on nodes to select
-- drag empty space to pan
-- `space + drag` to pan from anywhere on desktop
-- right-drag to pan from anywhere on desktop
-- wheel to zoom
-- contextual `Fit` control by level
+`src/lib/browser/workspace-storage.test.ts` cubre:
 
-Desktop also includes:
+- inicio vacío sin datos de demostración
+- aplicación explícita de plantillas
+- persistencia del historial de hábitos
 
-- minimap with viewport frame
-- keyboard pan and zoom helpers
+Antes de entregar cambios deben pasar `npm test`, `npm run lint` y `npm run build`.
 
-Mobile uses:
+## Próximas mejoras justificadas
 
-- bottom sheet instead of persistent sidebar
-- peek / half / full states
-- task and subtask modal flows
+1. exportación/importación para respaldar datos locales
+2. migración explícita cuando cambie el esquema `v1`
+3. pruebas E2E del flujo categoría -> objetivo -> tarea -> check-in
 
-## Visual Hierarchy
-
-The current spatial metaphor is:
-
-- `Category` -> galaxy entry
-- `Objective` -> solar sun
-- `Task` -> planet
-- `Subtask` -> satellite
-- `Habit` -> orbital rhythm marker
-
-This is important because it separates recurring behavior from discrete work.
-
-## Legacy 3D Layer
-
-Files:
-
-- `src/app/three/page.tsx`
-- `src/scene/orbyte-experience.tsx`
-- `src/scene/universe-canvas.tsx`
-- `src/scene/universe-scene.tsx`
-- `src/systems/camera-rig.tsx`
-
-Status:
-
-- kept as a legacy prototype
-- still functional
-- no longer the primary product surface
-
-## Performance Notes
-
-Current protections:
-
-- reduced 3D GPU budget on legacy route
-- reduced procedural star count
-- simplified parallax strategy
-- limited transition cost
-- direct pan mode for keyboard, fit, and minimap recenter
-- UI overlays isolated from canvas gestures through explicit `data-universe-ui` boundaries
-
-## Recommended Next Architecture Step
-
-After `1.0.0`, the next structural move should be:
-
-1. replace JSON persistence with Prisma + PostgreSQL
-2. keep `WorkspaceDomain -> UniverseData` mapping stable
-3. add authentication and workspace ownership
-4. introduce history/analytics for habit tracking
+No se debe añadir backend, autenticación o sincronización hasta que exista una necesidad real.

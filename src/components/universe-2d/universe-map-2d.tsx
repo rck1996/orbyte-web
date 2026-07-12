@@ -166,7 +166,7 @@ export function UniverseMap2D({
   const reducedSceneMotion = prefersReducedMotion || performanceMode;
   const lightweightOverview = reducedSceneMotion && showOverview;
   const stars = useMemo(
-    () => buildStars(lightweightOverview ? 0 : reducedSceneMotion ? 24 : 96),
+    () => buildStars(lightweightOverview ? 0 : reducedSceneMotion ? 18 : 64),
     [lightweightOverview, reducedSceneMotion],
   );
   const minimapPoints = useMemo(() => {
@@ -209,12 +209,12 @@ export function UniverseMap2D({
     taskPoints,
   ]);
   const fitViewLabel = showOverview
-    ? "Fit map"
+    ? "Ver todo"
     : showGalaxyView
-      ? "Fit galaxy"
+      ? "Ver categoría"
       : showObjectiveView
-        ? "Fit system"
-        : "Fit task";
+        ? "Ver objetivo"
+        : "Ver tarea";
   const breadcrumb = buildBreadcrumb({
     universeTitle: universe.title,
     galaxyName: galaxy?.name ?? null,
@@ -674,12 +674,12 @@ export function UniverseMap2D({
               key={star.id}
               className="absolute rounded-full bg-white"
               style={{
-                left: `${star.x}%`,
-                top: `${star.y}%`,
+                left: star.x,
+                top: star.y,
                 width: star.size,
                 height: star.size,
                 opacity: star.opacity,
-                boxShadow: `0 0 ${star.glow}px rgba(255,255,255,0.24)`,
+                boxShadow: `0 0 ${star.glow} rgba(255,255,255,0.24)`,
               }}
             />
           ))}
@@ -690,36 +690,35 @@ export function UniverseMap2D({
           animate={{ x: dragOffset.x * 0.08, y: dragOffset.y * 0.08 }}
           transition={{ x: { type: "spring", stiffness: 70, damping: 24 }, y: { type: "spring", stiffness: 70, damping: 24 } }}
         >
-          {stars.map((star) => (
-            <motion.div
-              key={star.id}
-              className="absolute rounded-full bg-white"
-              style={{
-                left: `${star.x}%`,
-                top: `${star.y}%`,
-                width: star.size,
-                height: star.size,
-                opacity: star.opacity,
-                boxShadow: `0 0 ${star.glow}px rgba(255,255,255,0.32)`,
-              }}
-              animate={{
-                opacity: [star.opacity * 0.55, star.opacity, star.opacity * 0.55],
-                scale: [1, 1.18, 1],
-              }}
-              transition={{
-                opacity: {
-                  duration: 3 + star.depth * 6,
+          {stars.map((star) => {
+            const style = {
+              left: star.x,
+              top: star.y,
+              width: star.size,
+              height: star.size,
+              opacity: star.opacity,
+              boxShadow: `0 0 ${star.glow} rgba(255,255,255,0.32)`,
+            };
+
+            return star.twinkles ? (
+              <motion.div
+                key={star.id}
+                className="absolute rounded-full bg-white will-change-transform"
+                style={style}
+                animate={{
+                  opacity: [star.opacity * 0.55, star.opacity, star.opacity * 0.55],
+                  scale: [1, 1.16, 1],
+                }}
+                transition={{
+                  duration: 3.4 + star.depth * 5,
                   repeat: Number.POSITIVE_INFINITY,
                   ease: "easeInOut",
-                },
-                scale: {
-                  duration: 3 + star.depth * 5,
-                  repeat: Number.POSITIVE_INFINITY,
-                  ease: "easeInOut",
-                },
-              }}
-            />
-          ))}
+                }}
+              />
+            ) : (
+              <div key={star.id} className="absolute rounded-full bg-white" style={style} />
+            );
+          })}
         </motion.div>
       )}
       <AnimatePresence>
@@ -817,7 +816,7 @@ export function UniverseMap2D({
           type="button"
           onClick={() => adjustZoom(-0.1)}
           className="inline-flex size-28 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-200 transition hover:bg-white/[0.08] md:size-32"
-          aria-label="Zoom out"
+          aria-label="Alejar mapa"
         >
           <Minus className="size-14" />
         </button>
@@ -828,7 +827,7 @@ export function UniverseMap2D({
           type="button"
           onClick={() => adjustZoom(0.1)}
           className="inline-flex size-28 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-200 transition hover:bg-white/[0.08] md:size-32"
-          aria-label="Zoom in"
+          aria-label="Acercar mapa"
         >
           <Plus className="size-14" />
         </button>
@@ -836,11 +835,11 @@ export function UniverseMap2D({
           type="button"
           onClick={resetView}
           className="inline-flex items-center gap-6 rounded-full border border-white/10 bg-white/[0.04] px-8 py-6 text-[10px] uppercase tracking-[0.14em] text-slate-200 transition hover:bg-white/[0.08] md:px-10 md:py-8 md:text-xs"
-          aria-label={`${fitViewLabel} and recenter view`}
+          aria-label={`${fitViewLabel} y centrar la vista`}
         >
           <Compass className="size-14" />
           <span className="hidden md:inline">{fitViewLabel}</span>
-          <span className="md:hidden">Fit</span>
+          <span className="md:hidden">Centrar</span>
         </button>
       </div>
       <div
@@ -848,7 +847,7 @@ export function UniverseMap2D({
         className="pointer-events-auto absolute bottom-4 right-4 z-20 hidden w-[172px] rounded-[22px] border border-white/10 bg-slate-950/56 p-10 shadow-[0_20px_60px_rgba(2,6,23,0.34)] backdrop-blur-2xl md:bottom-12 md:right-12 md:block"
       >
         <div className="flex items-center justify-between gap-8">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Navigator</p>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Mapa</p>
           <span className="rounded-full border border-white/8 bg-white/[0.03] px-8 py-4 text-[10px] text-slate-400">
             {fitViewLabel}
           </span>
@@ -882,7 +881,7 @@ export function UniverseMap2D({
           ) : null}
         </div>
         <p className="mt-8 text-[10px] leading-[1.5] text-slate-400">
-          Tap or click to recenter. The frame shows your current viewport.
+          Toca el mapa para centrar la vista. El marco indica tu posición actual.
         </p>
       </div>
 
@@ -1033,8 +1032,8 @@ export function UniverseMap2D({
           >
             <HubBadge
               title={universe.title}
-              subtitle="Galaxy index"
-              description="Categories are flattened into a 2D navigation surface to make the whole universe easier to scan."
+              subtitle="Tus categorías"
+              description="Cada categoría reúne objetivos, tareas y hábitos relacionados."
               point={sceneCenter}
               introOrigin={transitionOrigin?.point ?? null}
               reducedMotion={lightweightOverview}
@@ -1276,12 +1275,13 @@ function buildStars(count: number) {
 
     return {
       id: `star-${index}`,
-      x: noiseA * 100,
-      y: noiseB * 100,
-      size: 1 + noiseC * 2.4,
-      opacity: 0.18 + noiseA * 0.7,
-      glow: 8 + noiseB * 18,
-      depth: 0.04 + noiseC * 0.12,
+      x: `${(noiseA * 100).toFixed(3)}%`,
+      y: `${(noiseB * 100).toFixed(3)}%`,
+      size: `${(1 + noiseC * 2.4).toFixed(3)}px`,
+      opacity: Number((0.18 + noiseA * 0.7).toFixed(3)),
+      glow: `${(8 + noiseB * 18).toFixed(3)}px`,
+      depth: Number((0.04 + noiseC * 0.12).toFixed(3)),
+      twinkles: index % 6 === 0,
     };
   });
 }
@@ -1455,7 +1455,7 @@ function GalaxyCard({
       <p className="mt-12 text-[10px] uppercase tracking-[0.18em] text-slate-400">{galaxy.category}</p>
       <p className={`${compact ? "mt-6 text-sm" : "mt-8 text-base"} font-medium text-white`}>{galaxy.name}</p>
       <p className={`${compact ? "mt-6 text-xs leading-[1.45]" : "mt-8 text-sm leading-[1.55]"} text-slate-300`}>
-        {galaxy.objectives.length} objectives
+        {galaxy.objectives.length} objetivos
       </p>
     </motion.button>
   );
@@ -1509,11 +1509,11 @@ function ObjectiveCard2D({
           <div className="absolute inset-[-6px] rounded-full border border-white/8" />
         </div>
         <div className="min-w-0">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Objective</p>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Objetivo</p>
           <p className="mt-6 truncate text-sm font-medium text-white">{objective.name}</p>
         </div>
       </div>
-      <p className="mt-12 text-sm leading-[1.55] text-slate-300">{objective.tasks.length} tasks</p>
+      <p className="mt-12 text-sm leading-[1.55] text-slate-300">{objective.tasks.length} tareas</p>
       <div className="mt-8 h-[6px] overflow-hidden rounded-full bg-white/8">
         <div
           className="h-full rounded-full"
@@ -1568,7 +1568,7 @@ function ObjectiveSun2D({
         <div className="absolute inset-[-10px] rounded-full border border-white/8" />
       </motion.div>
       <div className="absolute left-1/2 top-[calc(100%+16px)] w-[240px] -translate-x-1/2 text-center">
-        <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Objective sun</p>
+        <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Objetivo central</p>
         <h3 className="mt-8 text-[24px] leading-[1.05] font-semibold tracking-[-0.05em] text-white">
           {objective.name}
         </h3>
@@ -1632,7 +1632,7 @@ function TaskNode2D({
           </p>
         </div>
       </div>
-      <p className="mt-10 text-xs text-slate-400">{task.subtasks.length} subtasks</p>
+      <p className="mt-10 text-xs text-slate-400">{task.subtasks.length} subtareas</p>
       <div className="mt-8 h-[6px] overflow-hidden rounded-full bg-white/8">
         <div
           className="h-full rounded-full"
@@ -1681,7 +1681,7 @@ function TaskFocus2D({
           <div className="absolute inset-[-8px] rounded-full border border-white/12" />
         </div>
         <div>
-          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Focused task</p>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Tarea seleccionada</p>
           <p className="mt-8 text-[22px] leading-[1.04] font-semibold tracking-[-0.04em] text-white">
             {task.name}
           </p>
@@ -1690,7 +1690,7 @@ function TaskFocus2D({
       <p className="mt-12 text-sm leading-[1.6] text-slate-300">{task.summary}</p>
       <div className="mt-12 flex items-center justify-between text-xs text-slate-400">
         <span>{task.progress}% complete</span>
-        <span>{task.subtasks.length} subtasks</span>
+        <span>{task.subtasks.length} subtareas</span>
       </div>
       <div className="mt-8 h-[8px] overflow-hidden rounded-full bg-white/8">
         <div

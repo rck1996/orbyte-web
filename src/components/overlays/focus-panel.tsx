@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { motion } from "framer-motion";
 import { AlertTriangle, CheckCircle2, Clock3, LoaderCircle, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { localWorkspaceRequest } from "@/lib/browser/workspace-storage";
 
 import {
   getFocusDescription,
@@ -17,22 +18,22 @@ import type { UniverseData } from "@/types/universe";
 const stateLabel = {
   todo: {
     icon: Clock3,
-    text: "Queued",
+    text: "Pendiente",
     tone: "text-slate-300",
   },
   in_progress: {
     icon: LoaderCircle,
-    text: "In progress",
+    text: "En progreso",
     tone: "text-sky-300",
   },
   done: {
     icon: CheckCircle2,
-    text: "Completed",
+    text: "Completada",
     tone: "text-emerald-300",
   },
   blocked: {
     icon: AlertTriangle,
-    text: "Blocked",
+    text: "Bloqueada",
     tone: "text-rose-300",
   },
 };
@@ -100,14 +101,14 @@ export function FocusPanel({
   const state = task ? stateLabel[task.state] : null;
   const Icon = state?.icon;
   const panelLabel = subtask
-    ? "Subtask detail"
+    ? "Detalle de subtarea"
     : task
-    ? "Task detail"
+    ? "Detalle de tarea"
     : focus.objective
-      ? "Objective detail"
+      ? "Detalle de objetivo"
       : focus.galaxy
-        ? "Galaxy detail"
-        : "Universe map";
+        ? "Detalle de categoría"
+        : "Vista general";
   const focusKind = subtask
     ? "subtask"
     : task
@@ -118,6 +119,13 @@ export function FocusPanel({
           ? "galaxy"
           : "map";
   const accent = accentByFocus[focusKind];
+  const focusKindLabel = {
+    map: "universo",
+    galaxy: "categoría",
+    objective: "objetivo",
+    task: "tarea",
+    subtask: "subtarea",
+  }[focusKind];
   const selectedCategory =
     workspace.categories.find((item) => item.id === selectedGalaxyId) ?? null;
   const selectedObjective =
@@ -133,36 +141,25 @@ export function FocusPanel({
 
   const createLabel =
     focusKind === "map"
-      ? "New galaxy"
+      ? "Nueva categoría"
       : focusKind === "galaxy"
-        ? "New objective"
+        ? "Nuevo objetivo"
         : focusKind === "objective"
-          ? "New task"
+          ? "Nueva tarea"
           : focusKind === "task"
-            ? "New subtask"
+            ? "Nueva subtarea"
             : null;
 
   function run(action: () => Promise<void>) {
     startTransition(() => {
       void action().catch((issue: unknown) => {
-        setError(issue instanceof Error ? issue.message : "Unexpected error.");
+        setError(issue instanceof Error ? issue.message : "No pudimos completar el cambio.");
       });
     });
   }
 
   async function request(path: string, init?: RequestInit) {
-    const response = await fetch(path, {
-      ...init,
-      headers: {
-        "Content-Type": "application/json",
-        ...(init?.headers ?? {}),
-      },
-    });
-
-    if (!response.ok) {
-      const errorBody = (await response.json().catch(() => null)) as { error?: string } | null;
-      throw new Error(errorBody?.error ?? "Request failed.");
-    }
+    return localWorkspaceRequest(path, init);
   }
 
   function handleCreate() {
@@ -178,10 +175,10 @@ export function FocusPanel({
           method: "POST",
           body: JSON.stringify({
             name: draftName,
-            category: "Custom",
+            category: "Personal",
             color: "#7dd3fc",
             accent: "#e0f2fe",
-            description: `${draftName} system`,
+            description: `${draftName} reúne tus objetivos y acciones principales.`,
             position: [0, 0, 0],
           }),
         });
@@ -191,7 +188,7 @@ export function FocusPanel({
           body: JSON.stringify({
             categoryId: selectedCategory.id,
             name: draftName,
-            description: `${draftName} objective`,
+            description: `Resultado que quieres alcanzar: ${draftName}.`,
             orbitRadius: 4 + selectedCategory.objectives.length * 1.4,
             habitIds: [],
           }),
@@ -204,8 +201,8 @@ export function FocusPanel({
             name: draftName,
             state: "todo",
             progress: 0,
-            dueDate: "Planned",
-            summary: `${draftName} task`,
+            dueDate: "Sin fecha",
+            summary: `Acción necesaria para avanzar en ${draftName}.`,
           }),
         });
       } else if (focusKind === "task" && selectedTask) {
@@ -215,8 +212,8 @@ export function FocusPanel({
             taskId: selectedTask.id,
             name: draftName,
             progress: 0,
-            dueDate: "Planned",
-            metadata: `${draftName} subtask`,
+            dueDate: "Sin fecha",
+            metadata: `Paso concreto: ${draftName}.`,
           }),
         });
       }
@@ -278,6 +275,7 @@ export function FocusPanel({
   }
 
   function handleDelete() {
+    if (!window.confirm("¿Eliminar este elemento y sus datos relacionados?")) return;
     run(async () => {
       setError(null);
 
@@ -306,16 +304,16 @@ export function FocusPanel({
   const completeLabel =
     focusKind === "task"
       ? selectedTask?.state === "done"
-        ? "Reopen task"
-        : "Close task"
+        ? "Reabrir tarea"
+        : "Completar tarea"
       : focusKind === "subtask"
         ? subtask?.progress === 100
-          ? "Reopen subtask"
-          : "Close subtask"
+          ? "Reabrir subtarea"
+          : "Completar subtarea"
         : focusKind === "objective"
-          ? "Close objective tasks"
+          ? "Completar tareas del objetivo"
           : focusKind === "galaxy"
-            ? "Close galaxy tasks"
+            ? "Completar tareas de la categoría"
             : "";
 
   return (
@@ -330,17 +328,17 @@ export function FocusPanel({
       <div className="relative flex items-center justify-between gap-12">
         <p className="text-xs uppercase tracking-[0.16em] text-slate-400">{panelLabel}</p>
         <span className={`rounded-full border px-8 py-4 text-[10px] uppercase tracking-[0.16em] ${accent.chip}`}>
-          {focusKind}
+          {focusKindLabel}
         </span>
       </div>
       <div className="mt-12 grid min-h-0 flex-1 gap-12 overflow-y-auto pr-4" style={{ touchAction: "pan-y" }}>
         <div>
           <div className="flex flex-wrap gap-8 text-[10px] uppercase tracking-[0.16em] text-slate-400">
             <span className="rounded-full border border-white/8 bg-white/[0.03] px-8 py-4">
-              {focus.galaxy?.name ?? "Universe"}
+              {focus.galaxy?.name ?? "Universo"}
             </span>
             <span className="rounded-full border border-white/8 bg-white/[0.03] px-8 py-4">
-              {focus.objective?.name ?? "Navigation"}
+              {focus.objective?.name ?? "Inicio"}
             </span>
           </div>
           <h2 className="mt-8 text-xl leading-[1.08] font-semibold text-white md:text-2xl">
@@ -356,16 +354,16 @@ export function FocusPanel({
           {task && state && Icon ? (
             <div className={`flex items-center gap-8 text-sm ${state.tone}`}>
               <Icon className="size-16" aria-hidden="true" />
-              <span>{subtask ? `Subtask in ${state.text.toLowerCase()} task` : state.text}</span>
+              <span>{subtask ? `Subtarea de una tarea ${state.text.toLowerCase()}` : state.text}</span>
             </div>
           ) : (
             <div className="text-sm text-slate-300">
-              {focus.objective ? "Focused objective" : focus.galaxy ? "Focused galaxy" : "Universe overview"}
+              {focus.objective ? "Objetivo seleccionado" : focus.galaxy ? "Categoría seleccionada" : "Resumen del universo"}
             </div>
           )}
           <div className="flex items-center justify-between text-sm text-slate-300">
-            <span>{focusProgress}% complete</span>
-            <span>{subtask?.dueDate ?? task?.dueDate ?? (focus.galaxy ? `${relatedTasks.length} related tasks` : "3 galaxies")}</span>
+            <span>{focusProgress}% completado</span>
+            <span>{subtask?.dueDate ?? task?.dueDate ?? (focus.galaxy ? `${relatedTasks.length} tareas relacionadas` : `${universe.galaxies.length} categorías`)}</span>
           </div>
           <div className="h-8 overflow-hidden rounded-full bg-white/8">
             <motion.div
@@ -379,7 +377,7 @@ export function FocusPanel({
 
         <div className="grid gap-8 rounded-[20px] border border-white/8 bg-white/[0.03] p-12">
           <div className="flex items-center justify-between gap-12">
-            <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Quick actions</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Siguiente acción</p>
             {isPending ? <LoaderCircle className="size-16 animate-spin text-slate-300" /> : null}
           </div>
 
@@ -399,7 +397,7 @@ export function FocusPanel({
                   className="inline-flex items-center gap-6 rounded-[14px] border border-sky-300/20 bg-sky-400/10 px-10 py-8 text-xs uppercase tracking-[0.14em] text-sky-50 transition hover:bg-sky-400/16 disabled:opacity-40"
                 >
                   <Plus className="size-14" />
-                  Add
+                  Crear
                 </button>
               </div>
             </div>
@@ -431,7 +429,7 @@ export function FocusPanel({
                 className="inline-flex items-center justify-center gap-6 rounded-[14px] border border-rose-300/18 bg-rose-400/10 px-10 py-8 text-xs uppercase tracking-[0.14em] text-rose-50 transition hover:bg-rose-400/16"
               >
                 <Trash2 className="size-14" />
-                Delete
+                Eliminar
               </button>
             ) : null}
           </div>
@@ -445,7 +443,7 @@ export function FocusPanel({
 
         <div className="grid gap-8">
           <div className="flex items-center justify-between text-xs uppercase tracking-[0.14em] text-slate-400">
-            <span>Related tasks</span>
+            <span>Tareas relacionadas</span>
             <span>{relatedTasks.length}</span>
           </div>
           <div className="grid gap-8">
@@ -476,7 +474,7 @@ export function FocusPanel({
             ))}
             {relatedTasks.length === 0 ? (
               <div className="rounded-[16px] border border-white/8 bg-white/[0.03] p-12 text-sm text-slate-300">
-                Select a galaxy to enter a system, then drill down into objectives and tasks.
+                Abre una categoría para continuar con sus objetivos y tareas.
               </div>
             ) : null}
           </div>

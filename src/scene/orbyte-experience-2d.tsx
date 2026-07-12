@@ -5,30 +5,50 @@ import { AnimatePresence, motion } from "framer-motion";
 
 import { UniverseHud } from "@/components/overlays/universe-hud";
 import { UniverseMap2D } from "@/components/universe-2d/universe-map-2d";
+import { createEmptyWorkspace, localWorkspaceSnapshot } from "@/lib/browser/workspace-storage";
+import { workspaceToUniverse } from "@/lib/universe-mappers";
 import { useUniverseStore } from "@/store/universe-store";
 import type { WorkspaceDomain } from "@/types/domain";
 import type { UniverseData } from "@/types/universe";
 
-export function OrbyteExperience2D({
-  universe,
-  workspace,
-}: {
-  universe: UniverseData;
-  workspace: WorkspaceDomain;
-}) {
+const emptyWorkspace = createEmptyWorkspace();
+const emptyUniverse = workspaceToUniverse(emptyWorkspace);
+
+export function OrbyteExperience2D() {
   const bootstrap = useUniverseStore((state) => state.bootstrap);
   const selectedGalaxyId = useUniverseStore((state) => state.selectedGalaxyId);
   const selectedObjectiveId = useUniverseStore((state) => state.selectedObjectiveId);
   const selectedTaskId = useUniverseStore((state) => state.selectedTaskId);
   const selectedSubtaskId = useUniverseStore((state) => state.selectedSubtaskId);
-  const [liveUniverse, setLiveUniverse] = useState(universe);
-  const [liveWorkspace, setLiveWorkspace] = useState(workspace);
+  const [liveUniverse, setLiveUniverse] = useState<UniverseData>(emptyUniverse);
+  const [liveWorkspace, setLiveWorkspace] = useState<WorkspaceDomain>(emptyWorkspace);
   const [transitionPulse, setTransitionPulse] = useState(0);
   const [performanceMode, setPerformanceMode] = useState(false);
+  const [saveNotice, setSaveNotice] = useState(false);
 
   useEffect(() => {
     bootstrap(null);
   }, [bootstrap]);
+
+  useEffect(() => {
+    const load = () => {
+      const snapshot = localWorkspaceSnapshot();
+      setLiveUniverse(snapshot.universe);
+      setLiveWorkspace(snapshot.workspace);
+    };
+    const handleChange = () => {
+      load();
+      setSaveNotice(true);
+      window.setTimeout(() => setSaveNotice(false), 1800);
+    };
+    load();
+    window.addEventListener("orbyte:workspace-changed", handleChange);
+    window.addEventListener("storage", load);
+    return () => {
+      window.removeEventListener("orbyte:workspace-changed", handleChange);
+      window.removeEventListener("storage", load);
+    };
+  }, []);
 
   useEffect(() => {
     const media = window.matchMedia("(pointer: coarse), (max-width: 767px)");
@@ -57,18 +77,20 @@ export function OrbyteExperience2D({
   }, [performanceMode, selectedGalaxyId, selectedObjectiveId, selectedTaskId, selectedSubtaskId]);
 
   async function refreshData() {
-    const [universeResponse, workspaceResponse] = await Promise.all([
-      fetch("/api/universe"),
-      fetch("/api/workspace"),
-    ]);
-    const nextUniverse = (await universeResponse.json()) as UniverseData;
-    const nextWorkspace = (await workspaceResponse.json()) as WorkspaceDomain;
-    setLiveUniverse(nextUniverse);
-    setLiveWorkspace(nextWorkspace);
+    const snapshot = localWorkspaceSnapshot();
+    setLiveUniverse(snapshot.universe);
+    setLiveWorkspace(snapshot.workspace);
   }
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#020617]">
+      <AnimatePresence>
+        {saveNotice ? (
+          <motion.div className="pointer-events-none absolute right-12 top-12 z-[70] rounded-full border border-emerald-300/20 bg-emerald-500/12 px-12 py-8 text-xs text-emerald-100 backdrop-blur-xl" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+            Guardado en este navegador
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(125,211,252,0.18),transparent_28%),radial-gradient(circle_at_80%_20%,rgba(167,139,250,0.16),transparent_24%),radial-gradient(circle_at_20%_80%,rgba(52,211,153,0.12),transparent_24%)]" />
       <UniverseMap2D
         universe={liveUniverse}
@@ -111,7 +133,6 @@ export function OrbyteExperience2D({
         universe={liveUniverse}
         workspace={liveWorkspace}
         onRefreshData={refreshData}
-        presentation="2d"
       />
     </div>
   );

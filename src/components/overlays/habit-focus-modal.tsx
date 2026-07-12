@@ -1,8 +1,9 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2, Flame, LoaderCircle, RotateCcw, X } from "lucide-react";
+import { localWorkspaceRequest } from "@/lib/browser/workspace-storage";
 
 import type { Habit } from "@/types/domain";
 
@@ -15,18 +16,7 @@ type Props = {
 };
 
 async function request(path: string, init?: RequestInit) {
-  const response = await fetch(path, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-  });
-
-  if (!response.ok) {
-    const errorBody = (await response.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(errorBody?.error ?? "Request failed.");
-  }
+  return localWorkspaceRequest(path, init);
 }
 
 function habitProgress(habit: Habit) {
@@ -45,12 +35,16 @@ export function HabitFocusModal({
   onRefreshData,
 }: Props) {
   const [isPending, startTransition] = useTransition();
+  const [openedAt] = useState(() => Date.now());
 
   if (!habit || !open) {
     return null;
   }
 
   const progress = habitProgress(habit);
+  const history = [...(habit.history ?? [])].reverse();
+  const lastSevenDays = history.filter((entry) => openedAt - new Date(entry.date).getTime() <= 7 * 86400000);
+  const weeklyChecks = lastSevenDays.reduce((sum, entry) => sum + Math.max(0, entry.delta), 0);
 
   function run(action: () => Promise<void>) {
     startTransition(() => {
@@ -72,7 +66,7 @@ export function HabitFocusModal({
           type="button"
           className="absolute inset-0 bg-[rgba(2,6,23,0.66)] backdrop-blur-[6px]"
           onClick={onClose}
-          aria-label="Close habit modal"
+          aria-label="Cerrar hábito"
         />
 
         <motion.div
@@ -87,12 +81,12 @@ export function HabitFocusModal({
         >
           <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-r from-cyan-300/18 via-sky-300/10 to-transparent" />
           <div className="relative pr-56">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Habit orbit</p>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Detalle del hábito</p>
             <h2 className="mt-8 text-[26px] leading-[1.04] font-semibold tracking-[-0.05em] text-white">
               {habit.name}
             </h2>
             <p className="mt-8 text-sm leading-[1.6] text-slate-300">
-              {objectiveName ?? "Objective"} / {habit.description}
+              {objectiveName ?? "Objetivo"} / {habit.description}
             </p>
             <button
               type="button"
@@ -101,7 +95,7 @@ export function HabitFocusModal({
                 onClose();
               }}
               className="absolute right-0 top-0 z-20 inline-flex size-40 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.08] text-slate-100 shadow-[0_10px_30px_rgba(2,6,23,0.24)] transition hover:bg-white/[0.12]"
-              aria-label="Close habit modal"
+              aria-label="Cerrar hábito"
             >
               <X className="size-18" />
             </button>
@@ -132,9 +126,9 @@ export function HabitFocusModal({
                 />
               </div>
               <div className="grid grid-cols-3 gap-8">
-                <MetricCard label="Completed" value={`${habit.completedCount}/${habit.target}`} />
-                <MetricCard label="Streak" value={`${habit.streak}d`} />
-                <MetricCard label="Cadence" value={habit.cadence} />
+                <MetricCard label="Completado" value={`${habit.completedCount}/${habit.target}`} />
+                <MetricCard label="Racha" value={`${habit.streak}d`} />
+                <MetricCard label="Frecuencia" value={{ daily: "Diaria", weekly: "Semanal", monthly: "Mensual" }[habit.cadence]} />
               </div>
             </div>
 
@@ -153,7 +147,7 @@ export function HabitFocusModal({
                 />
                 <RhythmStep
                   label="Today"
-                  value={habit.completedCount >= habit.target ? "Complete" : "Open"}
+                  value={habit.completedCount >= habit.target ? "Completo" : "Pendiente"}
                   active={habit.completedCount > 0}
                 />
                 <RhythmStep
@@ -186,7 +180,7 @@ export function HabitFocusModal({
                 ) : (
                   <CheckCircle2 className="size-14" />
                 )}
-                Check in
+                Registrar
               </button>
               <button
                 type="button"
@@ -205,15 +199,31 @@ export function HabitFocusModal({
                 className="inline-flex items-center justify-center gap-6 rounded-[14px] border border-white/10 bg-white/[0.04] px-10 py-8 text-xs uppercase tracking-[0.14em] text-slate-100 transition hover:bg-white/[0.08]"
               >
                 <RotateCcw className="size-14" />
-                Undo check-in
+                Deshacer registro
               </button>
+            </div>
+
+            <div className="grid gap-8 rounded-[20px] border border-white/8 bg-white/[0.03] p-12">
+              <div className="flex items-center justify-between gap-8">
+                <p className="text-xs uppercase tracking-[0.16em] text-slate-300">Historial</p>
+                <span className="text-xs text-cyan-200">{weeklyChecks} registros / 7 días</span>
+              </div>
+              {history.length ? (
+                <div className="grid gap-6">
+                  {history.slice(0, 8).map((entry) => (
+                    <div key={entry.id} className="flex items-center justify-between rounded-[12px] border border-white/8 px-10 py-8 text-xs">
+                      <span className="text-slate-400">{new Intl.DateTimeFormat("es", { dateStyle: "medium", timeStyle: "short" }).format(new Date(entry.date))}</span>
+                      <span className={entry.delta > 0 ? "text-emerald-300" : "text-amber-300"}>{entry.delta > 0 ? "+" : ""}{entry.delta} · {entry.completedCount}/{habit.target}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : <p className="text-sm text-slate-400">Aún no hay registros. El primer check-in aparecerá aquí.</p>}
             </div>
 
             <div className="flex items-center gap-8 rounded-[16px] border border-white/8 bg-white/[0.03] px-12 py-10 text-xs leading-[1.6] text-slate-400">
               <Flame className="size-16 text-cyan-300" />
               <span>
-                Habits should feel like recurring momentum, not chores. This surface prioritizes quick
-                logging, streak visibility, and progress without dragging you into admin work.
+                Registra el hábito con un toque. El historial y la racha muestran el ritmo sin añadir trabajo administrativo.
               </span>
             </div>
           </div>

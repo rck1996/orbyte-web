@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, CheckCircle2, LoaderCircle, PencilLine, Plus, RotateCcw, Sparkles, Trash2, X } from "lucide-react";
+import { localWorkspaceRequest } from "@/lib/browser/workspace-storage";
 
 import { useUniverseStore } from "@/store/universe-store";
 import type { WorkspaceDomain } from "@/types/domain";
@@ -17,18 +18,7 @@ type Props = {
 };
 
 async function request(path: string, init?: RequestInit) {
-  const response = await fetch(path, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-  });
-
-  if (!response.ok) {
-    const errorBody = (await response.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(errorBody?.error ?? "Request failed.");
-  }
+  return localWorkspaceRequest(path, init);
 }
 
 export function TaskFocusModal({
@@ -68,7 +58,7 @@ export function TaskFocusModal({
 
   const currentEntityKey = `${selectedTaskId ?? "task"}:${selectedSubtaskId ?? "subtask"}`;
 
-  const closeLabel = modalMode === "subtask" ? "Close subtask" : task.state === "done" ? "Reopen task" : "Close task";
+  const closeLabel = modalMode === "subtask" ? "Completar subtarea" : task.state === "done" ? "Reabrir tarea" : "Completar tarea";
   const backLabel = modalMode === "subtask" ? "Back to task" : "Back to objective";
   const dismissModal = () => {
     if (modalMode === "subtask") {
@@ -97,7 +87,7 @@ export function TaskFocusModal({
           type="button"
           className="absolute inset-0 bg-[rgba(2,6,23,0.68)] backdrop-blur-[6px]"
           onClick={dismissModal}
-          aria-label="Close task detail modal"
+          aria-label="Cerrar detalle"
         />
 
         <motion.div
@@ -115,14 +105,14 @@ export function TaskFocusModal({
           <div className="relative flex items-start justify-between gap-12">
             <div className="min-w-0 pr-56">
               <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">
-                {modalMode === "subtask" ? "Subtask modal" : "Task modal"}
+                {modalMode === "subtask" ? "Detalle de subtarea" : "Detalle de tarea"}
               </p>
               <h2 className="mt-8 text-[26px] leading-[1.04] font-semibold tracking-[-0.05em] text-white">
                 {modalMode === "subtask" ? subtask?.name : task.name}
               </h2>
               <p className="mt-8 text-sm leading-[1.6] text-slate-300">
                 {modalMode === "subtask"
-                  ? `${category?.name ?? "Universe"} / ${objective?.name ?? "Objective"} / ${task.name}`
+                  ? `${category?.name ?? "Universo"} / ${objective?.name ?? "Objetivo"} / ${task.name}`
                   : task.summary}
               </p>
             </div>
@@ -133,7 +123,7 @@ export function TaskFocusModal({
                 dismissModal();
               }}
               className="absolute right-0 top-0 z-20 inline-flex size-40 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.08] text-slate-100 shadow-[0_10px_30px_rgba(2,6,23,0.24)] transition hover:bg-white/[0.12]"
-              aria-label="Close modal"
+              aria-label="Cerrar"
             >
               <X className="size-18" />
             </button>
@@ -165,7 +155,7 @@ export function TaskFocusModal({
                   {category?.name ?? "Universe"}
                 </span>
                 <span className="rounded-full border border-white/8 bg-white/[0.03] px-8 py-4 text-[10px] uppercase tracking-[0.16em] text-slate-300">
-                  {objective?.name ?? "Objective"}
+                  {objective?.name ?? "Objetivo"}
                 </span>
                 <span className="rounded-full border border-sky-300/16 bg-sky-400/10 px-8 py-4 text-[10px] uppercase tracking-[0.16em] text-sky-100">
                   {modalMode === "subtask" ? `${subtask?.progress ?? 0}%` : `${task.progress}%`}
@@ -228,7 +218,7 @@ export function TaskFocusModal({
                 <input
                   name="name"
                   defaultValue={modalMode === "subtask" ? subtask?.name ?? "" : task.name}
-                  placeholder={modalMode === "subtask" ? "Subtask name" : "Task name"}
+                  placeholder={modalMode === "subtask" ? "Nombre de la subtarea" : "Nombre de la tarea"}
                   className="rounded-[14px] border border-white/10 bg-slate-950/70 px-10 py-8 text-sm text-white outline-none placeholder:text-slate-500 focus:border-sky-300/30"
                 />
                 {modalMode === "task" ? (
@@ -236,7 +226,7 @@ export function TaskFocusModal({
                     name="summary"
                     defaultValue={task.summary}
                     rows={3}
-                    placeholder="Task summary"
+                    placeholder="Descripción de la tarea"
                     className="rounded-[14px] border border-white/10 bg-slate-950/70 px-10 py-8 text-sm text-white outline-none placeholder:text-slate-500 focus:border-sky-300/30"
                   />
                 ) : (
@@ -244,7 +234,7 @@ export function TaskFocusModal({
                     name="metadata"
                     defaultValue={subtask?.metadata ?? ""}
                     rows={3}
-                    placeholder="Subtask metadata"
+                    placeholder="Descripción de la subtarea"
                     className="rounded-[14px] border border-white/10 bg-slate-950/70 px-10 py-8 text-sm text-white outline-none placeholder:text-slate-500 focus:border-sky-300/30"
                   />
                 )}
@@ -253,7 +243,7 @@ export function TaskFocusModal({
                   className="inline-flex items-center justify-center gap-6 rounded-[14px] border border-violet-300/18 bg-violet-400/10 px-10 py-8 text-xs uppercase tracking-[0.14em] text-violet-50 transition hover:bg-violet-400/16"
                 >
                   <PencilLine className="size-14" />
-                  Save changes
+                  Guardar cambios
                 </button>
               </form>
             </div>
@@ -261,7 +251,7 @@ export function TaskFocusModal({
             {modalMode === "task" ? (
               <div className="grid gap-8 rounded-[20px] border border-white/8 bg-white/[0.03] p-12">
                 <div className="flex items-center justify-between gap-12">
-                  <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Create subtask</p>
+                  <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Crear subtarea</p>
                   {isPending ? <LoaderCircle className="size-16 animate-spin text-slate-300" /> : null}
                 </div>
                 <div className="flex gap-8">
@@ -307,7 +297,7 @@ export function TaskFocusModal({
             {modalMode === "task" ? (
               <div className="grid gap-8 rounded-[20px] border border-white/8 bg-white/[0.03] p-12">
                 <div className="flex items-center justify-between gap-12">
-                  <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Subtasks</p>
+                  <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Subtareas</p>
                   <span className="rounded-full border border-white/8 bg-white/[0.03] px-8 py-4 text-[10px] text-slate-400">
                     {task.subtasks.length}
                   </span>
@@ -338,7 +328,8 @@ export function TaskFocusModal({
             <div className="grid gap-8 md:grid-cols-2">
               <button
                 type="button"
-                onClick={() =>
+                onClick={() => {
+                  if (!window.confirm(`¿Eliminar ${modalMode === "subtask" ? "esta subtarea" : "esta tarea"}?`)) return;
                   run(async () => {
                     setError(null);
 
@@ -360,8 +351,8 @@ export function TaskFocusModal({
                     }
 
                     await onRefreshData();
-                  })
-                }
+                  });
+                }}
                 className="inline-flex items-center justify-center gap-6 rounded-[14px] border border-emerald-300/18 bg-emerald-400/10 px-10 py-8 text-xs uppercase tracking-[0.14em] text-emerald-50 transition hover:bg-emerald-400/16"
               >
                 {modalMode === "subtask" ? (
@@ -399,7 +390,7 @@ export function TaskFocusModal({
                 className="inline-flex items-center justify-center gap-6 rounded-[14px] border border-rose-300/18 bg-rose-400/10 px-10 py-8 text-xs uppercase tracking-[0.14em] text-rose-50 transition hover:bg-rose-400/16"
               >
                 <Trash2 className="size-14" />
-                Delete
+                Eliminar
               </button>
             </div>
 
@@ -412,8 +403,8 @@ export function TaskFocusModal({
             <div className="flex items-center gap-8 rounded-[16px] border border-white/8 bg-white/[0.03] px-12 py-10 text-xs leading-[1.6] text-slate-400">
               <Sparkles className="size-16 text-violet-300" />
               {modalMode === "subtask"
-                ? "Subtasks stay lightweight: close, reopen, or remove them without leaving the current orbit."
-                : "Tasks now act as operational surfaces: inspect, create subtasks, close, reopen, and clean up from a focused modal."}
+                ? "Completa, reabre o elimina esta subtarea sin perder el contexto."
+                : "Edita la tarea, crea subtareas y actualiza su estado desde esta vista."}
             </div>
           </div>
         </motion.div>
